@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "vercel-dist",
+  "framework": null,
+  "cleanUrls": true,
+  "experimentalServices": {
+    "frontend": {
+      "routePrefix": "/",
+      "framework": "vite"
+    },
+    "backend": {
+      "entrypoint": "backend",
+      "routePrefix": "/_/backend"
+    }
+  }
+}
