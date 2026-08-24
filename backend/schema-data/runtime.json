@@ -1,0 +1,20 @@
+{
+  "code": "success",
+  "message": "operation successful",
+  "data": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "The name of the model"
+      },
+      "model_type": {
+        "type": "string",
+        "description": "The type of the model"
+      }
+    },
+    "required": ["name", "model_type"],
+    "title": "Model",
+    "description": "A model object"
+   }
+}

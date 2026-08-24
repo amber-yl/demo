@@ -1,0 +1,24 @@
+{
+  "code": "success",
+  "message": "operation successful",
+  "data": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "The name of the model",
+        "example": ["model-1"],
+        "title": "Model Name"
+      },
+      "model_type": {
+        "type": "string",
+        "description": "The type of the model",
+        "enum": ["deepseek-v3"],
+        "title": "Model Type"
+      }
+    },
+    "required": ["name", "model_type"],
+    "title": "Model",
+    "description": "A model object"
+   }
+}
