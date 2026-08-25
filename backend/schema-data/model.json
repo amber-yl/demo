@@ -1,24 +1,342 @@
 {
-  "code": "success",
-  "message": "operation successful",
-  "data": {
-    "type": "object",
-    "properties": {
-      "name": {
-        "type": "string",
-        "description": "The name of the model",
-        "example": ["model-1"],
-        "title": "Model Name"
-      },
-      "model_type": {
-        "type": "string",
-        "description": "The type of the model",
-        "enum": ["deepseek-v3"],
-        "title": "Model Type"
-      }
-    },
-    "required": ["name", "model_type"],
-    "title": "Model",
-    "description": "A model object"
-   }
+    "code": "success",
+    "message": "operation successful",
+    "data": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "title": "配置名称",
+                "description": "配置名称",
+                "examples": [
+                    "config_001"
+                ],
+                "pattern": "^(?!.*[/\\\\*?|<>:\"'#&])(?!^\\.+$).+$"
+            },
+            "matrix_compute": {
+                "title": "矩阵计算性能",
+                "description": "矩阵计算性能",
+                "type": "object",
+                "properties": {
+                    "fp16_tflops": {
+                        "type": "number",
+                        "title": "FP16 精度计算能力",
+                        "description": "FP16 精度计算能力",
+                        "minimum": 0,
+                        "unit": "tflops",
+                        "examples": [
+                            356
+                        ]
+                    },
+                    "fp8_tflops": {
+                        "type": "number",
+                        "title": "FP8 精度计算能力",
+                        "description": "FP8 精度计算能力",
+                        "minimum": 0,
+                        "unit": "tflops",
+                        "examples": [
+                            712
+                        ]
+                    },
+                    "fp4_tflops": {
+                        "type": "number",
+                        "title": "FP4 精度计算能力",
+                        "description": "FP4 精度计算能力",
+                        "minimum": 0,
+                        "unit": "tflops",
+                        "examples": [
+                            2000
+                        ]
+                    },
+                    "efficiency": {
+                        "type": "number",
+                        "title": "计算效率",
+                        "description": "计算效率",
+                        "minimum": 0,
+                        "maximum": 1,
+                        "examples": [
+                            0.8
+                        ]
+                    },
+                    "matmul_kernel_launch_us": {
+                        "type": "number",
+                        "title": "矩阵乘法操作的内核启动开销",
+                        "description": "矩阵乘法操作的内核启动开销",
+                        "minimum": 0,
+                        "unit": "us",
+                        "examples": [
+                            7
+                        ]
+                    },
+                    "flash_attn_kernel_launch_us": {
+                        "type": "number",
+                        "title": "Flash Attention 的内核启动开销",
+                        "description": "Flash Attention 的内核启动开销",
+                        "minimum": 0,
+                        "unit": "us",
+                        "examples": [
+                            10
+                        ]
+                    }
+                },
+                "required": [
+                    "fp16_tflops",
+                    "fp8_tflops",
+                    "fp4_tflops",
+                    "efficiency",
+                    "matmul_kernel_launch_us",
+                    "flash_attn_kernel_launch_us"
+                ]
+            },
+            "vector_compute": {
+                "title": "向量计算性能",
+                "type": "object",
+                "description": "向量计算性能",
+                "properties": {
+                    "fp32_tflops": {
+                        "type": "number",
+                        "title": "FP32 向量计算能力",
+                        "minimum": 0,
+                        "unit": "tflops",
+                        "examples": [
+                            22
+                        ]
+                    },
+                    "fp16_tflops": {
+                        "type": "number",
+                        "title": "FP16 向量计算能力",
+                        "minimum": 0,
+                        "unit": "tflops",
+                        "examples": [
+                            44
+                        ]
+                    },
+                    "efficiency": {
+                        "type": "number",
+                        "title": "向量计算效率",
+                        "minimum": 0,
+                        "maximum": 1,
+                        "examples": [
+                            0.8
+                        ]
+                    }
+                },
+                "required": [
+                    "fp32_tflops",
+                    "fp16_tflops",
+                    "efficiency"
+                ]
+            },
+            "data_placement": {
+                "title": "数据放置策略",
+                "type": "object",
+                "description": "数据放置策略",
+                "properties": {
+                    "memory": {
+                        "type": "array",
+                        "title": "分层介质配置",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "title": "分层介质配置选项",
+                            "description": "分层介质配置选项",
+                            "properties": {
+                                "tier": {
+                                    "type": "string",
+                                    "title": "逻辑层级",
+                                    "examples": [
+                                        "tier1"
+                                    ]
+                                },
+                                "memory_kind": {
+                                    "type": "string",
+                                    "title": "介质名称",
+                                    "examples": [
+                                        "hbm"
+                                    ]
+                                },
+                                "capacity_gb": {
+                                    "type": "number",
+                                    "title": "容量",
+                                    "minimum": 0,
+                                    "unit": "gb",
+                                    "examples": [
+                                        64
+                                    ]
+                                },
+                                "bandwidth_gbps": {
+                                    "type": "number",
+                                    "title": "带宽",
+                                    "minimum": 0,
+                                    "unit": "gbps",
+                                    "examples": [
+                                        1600
+                                    ]
+                                },
+                                "efficiency": {
+                                    "type": "number",
+                                    "title": "效率",
+                                    "minimum": 0,
+                                    "maximum": 1,
+                                    "examples": [
+                                        0.8
+                                    ]
+                                },
+                                "sparse_efficiency": {
+                                    "type": "number",
+                                    "title": "稀疏访问效率",
+                                    "minimum": 0,
+                                    "maximum": 1,
+                                    "examples": [
+                                        0.3
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "tier",
+                                "memory_kind",
+                                "capacity_gb",
+                                "bandwidth_gbps",
+                                "efficiency"
+                            ]
+                        }
+                    },
+                    "weights": {
+                        "type": "string",
+                        "title": "权重矩阵",
+                        "default": "tier1",
+                        "examples": [
+                            "tier1"
+                        ]
+                    },
+                    "kv_cache": {
+                        "type": "string",
+                        "title": "KV缓存矩阵",
+                        "default": "tier1",
+                        "examples": [
+                            "tier1"
+                        ]
+                    },
+                    "activations": {
+                        "type": "string",
+                        "title": "激活矩阵",
+                        "default": "tier1",
+                        "examples": [
+                            "tier1"
+                        ]
+                    }
+                },
+                "required": [
+                    "memory",
+                    "weights",
+                    "kv_cache",
+                    "activations"
+                ]
+            },
+            "interconnect": {
+                "type": "array",
+                "title": "节点间互联",
+                "minItems": 1,
+                "items": {
+                    "type": "object",
+                    "title": "节点间互联选项",
+                    "description": "节点间互联选项",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "title": "通信方式名称",
+                            "examples": [
+                                "FM"
+                            ]
+                        },
+                        "size_limit": {
+                            "type": "integer",
+                            "title": "节点/卡数上限",
+                            "minimum": 1,
+                            "examples": [
+                                16
+                            ]
+                        },
+                        "bandwidth_gbps": {
+                            "type": "number",
+                            "title": "通信带宽",
+                            "minimum": 0,
+                            "unit": "gbps",
+                            "examples": [
+                                192
+                            ]
+                        },
+                        "efficiency": {
+                            "type": "number",
+                            "title": "通信效率",
+                            "minimum": 0,
+                            "maximum": 1,
+                            "examples": [
+                                0.5
+                            ]
+                        },
+                        "latency_mode": {
+                            "title": "时延模式选择",
+                            "type": "string",
+                            "description": "时延模式选择",
+                            "enum": [
+                                "latency_us",
+                                "latency_model"
+                            ],
+                            "x-enum-label": [
+                                "固定静态时延",
+                                "模型动态时延"
+                            ],
+                            "examples": [
+                                "固定静态时延"
+                            ]
+                        },
+                        "latency_us": {
+                            "type": "number",
+                            "title": "固定静态时延",
+                            "minimum": 0,
+                            "unit": "us",
+                            "examples": [
+                                20
+                            ]
+                        },
+                        "latency_model": {
+                            "title": "模型动态时延",
+                            "type": "string",
+                            "description": "模型动态时延",
+                            "enum": [
+                                "ep_comm_latency_model",
+                                "ep_comm_balanced_latency_model",
+                                "ep_comm_unbalanced_latency_model"
+                            ],
+                            "x-enum-label": [
+                                "分段对数线性时延模型",
+                                "均衡负载时延模型",
+                                "非均衡负载时延模型"
+                            ],
+                            "examples": [
+                                "分段对数线性时延模型"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "name",
+                        "size_limit",
+                        "bandwidth_gbps",
+                        "efficiency",
+                        "latency_mode"
+                    ]
+                }
+            }
+        },
+        "required": [
+            "name",
+            "matrix_compute",
+            "vector_compute",
+            "data_placement",
+            "interconnect"
+        ],
+        "title": "芯片配置",
+        "description": ""
+    }
 }

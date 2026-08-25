@@ -1,0 +1,59 @@
+// Toast 全局通知样式：通过 sf-toast-stack / sf-toast* 全局类名挂到页面
+// 注意：Less 默认会被 CSS modules 哈希，但我们在 className 里写的是"纯字符串"
+// 所以这些类名必须走 :global，否则 vite 会把 sf-toast 哈希成别的名字
+:global(.sf-toast-stack) {
+  position: fixed;
+  z-index: 9999;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  pointer-events: none;
+  font-family: var(--font-sans);
+}
+
+:global(.sf-toast) {
+  min-width: 220px;
+  max-width: 460px;
+  padding: 10px 16px;
+  border-radius: @radius-md;
+  box-shadow: var(--shadow-lg);
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  font-size: 14px;
+  line-height: 1.5;
+  animation: sf-toast-in 160ms ease-out;
+
+  &-success {
+    background: var(--success-bg);
+    border-color: color-mix(in srgb, var(--success) 45%, transparent);
+    color: var(--success);
+  }
+  &-error {
+    background: var(--danger-bg);
+    border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+    color: var(--danger);
+  }
+  &-warning {
+    background: var(--warning-bg);
+    border-color: color-mix(in srgb, var(--warning) 45%, transparent);
+    color: var(--accent-500);
+  }
+  &-info {
+    background: color-mix(in srgb, var(--brand-500) 12%, transparent);
+    border-color: color-mix(in srgb, var(--brand-500) 45%, transparent);
+    color: var(--brand-400);
+  }
+}
+
+@keyframes sf-toast-in {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}

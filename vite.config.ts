@@ -1,38 +1,14 @@
 import { codeInspectorPlugin } from 'code-inspector-plugin'
 import vinext from "vinext";
 import { defineConfig } from "vite";
-import hostingConfig from "./.openai/hosting.json";
 import { sites } from "./build/sites-vite-plugin";
-
-
-const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
-  "00000000-0000-4000-8000-000000000000";
-
-const { d1, r2 } = hostingConfig;
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 
 const localBindingConfig = {
-  main: "./worker/index.ts",
+  // NOTE: 不要显式写 main，交给 vinext 内置的 worker runtime 接管
   compatibility_flags: ["nodejs_compat"],
-  d1_databases: d1
-    ? [
-      {
-        binding: d1,
-        database_name: "site-creator-d1",
-        database_id: SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
-      },
-    ]
-    : [],
-  r2_buckets: r2
-    ? [
-      {
-        binding: r2,
-        bucket_name: "site-creator-r2",
-      },
-    ]
-    : [],
 };
 
 export default defineConfig(async () => {
@@ -49,11 +25,43 @@ export default defineConfig(async () => {
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
+    css: {
+      modules: {
+        generateScopedName: process.env.NODE_ENV === "production"
+          ? "[hash:base64:8]"
+          : "[name]__[local]___[hash:base64:5]",
+        localsConvention: "camelCaseOnly",
+        exportGlobals: true,
+      },
+      preprocessorOptions: {
+        less: {
+          javascriptEnabled: true,
+          additionalData: `
+            @brand-500: #22d3ee;
+            @brand-400: #0891b2;
+            @brand-600: #06b6d4;
+            @brand-700: #0e7490;
+            @accent-500: #f59e0b;
+            @success: #10b981;
+            @warning: #f59e0b;
+            @danger: #ef4444;
+            @purple: #8b5cf6;
+            @radius-sm: 6px;
+            @radius-md: 10px;
+            @radius-lg: 14px;
+          `,
+        },
+      },
+    },
     plugins: [
       codeInspectorPlugin({
         bundler: 'vite',
+        enforcePre: true,
+        editor: 'trae',
         hideConsole: false,
-        editor: "trae",
+        include: [/\.jsx?$/, /\.tsx?$/],
+        exclude: [/node_modules/, /\.next/, /dist/],
+        showSwitch: true,
       }),
       vinext(),
       sites(),

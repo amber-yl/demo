@@ -1,0 +1,452 @@
+.pageWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.headerCard {
+  background: linear-gradient(120deg, rgba(34, 211, 238, 0.14), rgba(167, 139, 250, 0.14));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 18px 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.headerIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #22d3ee, #a78bfa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.headerContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.headerTitle {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.headerSubtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, var(--brand-600), var(--brand-700));
+  color: #061219;
+  font-weight: 600;
+}
+
+.btnPrimary:hover {
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+  box-shadow: 0 4px 16px rgba(34, 211, 238, 0.25);
+}
+
+.btnSecondary {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+}
+
+.btnSecondary:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-strong);
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1280px) {
+  .statsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.statCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+}
+
+.statCardIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 12px;
+}
+
+.statCardIconCyan {
+  background: rgba(34, 211, 238, 0.12);
+  color: var(--brand-400);
+}
+
+.statCardIconAmber {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--accent-400);
+}
+
+.statCardIconGreen {
+  background: rgba(52, 211, 153, 0.12);
+  color: var(--success);
+}
+
+.statCardIconRed {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--danger);
+}
+
+.statCardLabel {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+
+.statCardValue {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.statCardSuffix {
+  font-size: 16px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-left: 2px;
+}
+
+.statCardTrend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.trendUp {
+  color: var(--success);
+}
+
+.trendDown {
+  color: var(--danger);
+}
+
+.trendNeutral {
+  color: var(--text-secondary);
+}
+
+.trendTag {
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.trendTagSuccess {
+  background: rgba(52, 211, 153, 0.12);
+  color: var(--success);
+}
+
+.trendTagInfo {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+}
+
+.quickEntries {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1280px) {
+  .quickEntries {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.quickEntryCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: left;
+}
+
+.quickEntryCard:hover {
+  border-color: var(--brand-600);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  background: var(--bg-card-hover);
+}
+
+.quickEntryIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.quickEntryTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.quickEntryDesc {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.quickEntryArrow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--brand-400);
+  font-weight: 500;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.2s ease;
+}
+
+.quickEntryCard:hover .quickEntryArrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.tableCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.tableHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tableTitle {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: var(--bg-card-hover);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.statusBadge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.statusRunning {
+  background: rgba(34, 211, 238, 0.12);
+  color: var(--brand-400);
+}
+
+.statusRunning .dot {
+  background: var(--brand-500);
+  animation: pulse 1.5s infinite;
+}
+
+.statusQueued {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--accent-400);
+}
+
+.statusQueued .dot {
+  background: var(--accent-500);
+}
+
+.statusSuccess {
+  background: rgba(52, 211, 153, 0.12);
+  color: var(--success);
+}
+
+.statusSuccess .dot {
+  background: var(--success);
+}
+
+.statusFailed {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--danger);
+}
+
+.statusFailed .dot {
+  background: var(--danger);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.kindBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.kindInference {
+  background: rgba(34, 211, 238, 0.12);
+  color: var(--brand-400);
+}
+
+.kindTraining {
+  background: rgba(167, 139, 250, 0.12);
+  color: var(--purple);
+}
+
+.kindGeneral {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.kindGraph {
+  background: rgba(236, 72, 153, 0.12);
+  color: #ec4899;
+}
+
+.progressBar {
+  width: 180px;
+  height: 6px;
+  background: var(--bg-input);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand-600), var(--brand-400));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.viewBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.viewBtn:hover {
+  color: var(--brand-400);
+  border-color: var(--brand-600);
+  background: rgba(34, 211, 238, 0.08);
+}

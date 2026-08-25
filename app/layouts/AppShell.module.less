@@ -1,0 +1,22 @@
+.appShell {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--bg-deep);
+}
+
+.mainArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.contentArea {
+  min-width: 0;
+  padding: 16px;
+  overflow: auto;
+  height: calc(100vh - 64px);
+  background: transparent;
+}
