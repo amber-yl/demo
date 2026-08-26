@@ -9,8 +9,6 @@ import {
   TrendingUp,
   LineChart as LineChartIcon,
   GitBranch,
-  Lightbulb,
-  ScrollText,
   History,
   Sparkles,
   CheckCircle2,
@@ -221,15 +219,6 @@ export default function ResultPanel({
               阶段进度
             </span>
           </button>
-          <button
-            className={`${styles.tabItem} ${activeTab === "recommendations" ? styles.active : ""}`}
-            onClick={() => setActiveTab("recommendations")}
-          >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Lightbulb size={14} strokeWidth={2} />
-              优化建议
-            </span>
-          </button>
         </div>
 
         <div className={styles.panelBody}>
@@ -312,63 +301,6 @@ export default function ResultPanel({
         </div>
       </div>
 
-      {/* Logs Table */}
-      <div className={styles.panelCard}>
-        <div className={styles.panelBody}>
-          <div className={styles.sectionTitle}>
-            <ScrollText size={15} strokeWidth={2} style={{ color: "var(--brand-400)" }} />
-            运行日志
-            <span
-              style={{
-                marginLeft: "auto",
-                fontSize: 11.5,
-                color: "var(--text-tertiary)",
-                fontWeight: 400,
-              }}
-            >
-              共 {result.logs?.length ?? 0} 条
-            </span>
-          </div>
-          <div className={styles.tableWrap}>
-            <table className={styles.dataTable}>
-              <thead>
-                <tr>
-                  <th style={{ width: 140 }}>时间</th>
-                  <th style={{ width: 90 }}>级别</th>
-                  <th>消息</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(result.logs ?? []).length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={3}
-                      style={{ textAlign: "center", padding: "24px 14px", color: "var(--text-tertiary)" }}
-                    >
-                      暂无日志
-                    </td>
-                  </tr>
-                ) : (
-                  (result.logs ?? []).map((log, i) => (
-                    <tr key={`log-${i}`}>
-                      <td className={styles.logTime}>{log.time}</td>
-                      <td>
-                        <span
-                          className={`${styles.logLevel} ${log.level === "INFO" || log.level === "WARN" || log.level === "ERROR" || log.level === "DEBUG" ? log.level : ""}`}
-                        >
-                          {log.level}
-                        </span>
-                      </td>
-                      <td className={styles.logMsg}>{log.msg}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
       {/* Recent Runs Table */}
       <div className={styles.panelCard}>
         <div className={styles.panelBody}>
@@ -415,7 +347,7 @@ export default function ResultPanel({
                         }}
                       >
                         <Eye size={12} strokeWidth={2} />
-                        查看
+                        <span>查看</span>
                       </button>
                     </td>
                   </tr>

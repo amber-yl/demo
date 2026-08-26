@@ -155,6 +155,7 @@ function cloneCssRuleForLess(
 
 const nextConfig: NextConfig = {
   transpilePackages: ["lucide-react"],
+  devIndicators: false,
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },

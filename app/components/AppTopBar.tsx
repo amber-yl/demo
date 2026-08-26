@@ -2,7 +2,7 @@
 
 import React from "react";
 import { usePathname } from "next/navigation";
-import { ChevronRight, PlayCircle, Sun, Moon } from "lucide-react";
+import { ChevronRight, Sun, Moon } from "lucide-react";
 import type { PageId, WorkloadKind } from "../types";
 import { WORKLOAD_LABEL } from "../utils";
 import styles from "./AppTopBar.module.less";
@@ -37,7 +37,6 @@ function buildCrumbs(page: PageId | string): Crumb[] {
 
 export default function AppTopBar({
   currentPage,
-  onRunSim,
   theme,
   onToggleTheme,
 }: Props) {
@@ -72,16 +71,6 @@ export default function AppTopBar({
       </nav>
 
       <div className={styles.rightArea}>
-        {onRunSim && (
-          <button
-            className={styles.runButton}
-            onClick={onRunSim}
-            type="button"
-          >
-            <PlayCircle />
-            运行仿真
-          </button>
-        )}
         <button
           className={styles.iconButton}
           onClick={onToggleTheme}

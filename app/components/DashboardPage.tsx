@@ -1,8 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
   Zap,
   CheckCircle2,
   XCircle,
@@ -17,71 +17,19 @@ import {
   Code2,
 } from "lucide-react";
 import type { PageId } from "../types";
+import { api, type DashboardTask, type DashboardStat, type DashboardQuickEntry } from "../utils/api";
 import styles from "../pages/DashboardPage.module.less";
 
-type TaskType = {
-  id: string;
-  name: string;
-  kind: string;
-  scene: string;
-  status: string;
-  progress: number;
-  eta: string;
-  owner: string;
+const ICON_MAP: Record<string, React.ReactNode> = {
+  Microscope: <Microscope size={18} />,
+  Clock: <Clock size={18} />,
+  CheckCircle2: <CheckCircle2 size={18} />,
+  XCircle: <XCircle size={18} />,
+  Zap: <Zap size={22} />,
+  Bot: <Bot size={22} />,
+  Code2: <Code2 size={22} />,
+  Network: <Network size={22} />,
 };
-
-const tasks: TaskType[] = [
-  {
-    id: "SIM-2048",
-    name: "LLaMA-3-70B 推理 · PD 分离",
-    kind: "inference",
-    scene: "pd_separate",
-    status: "running",
-    progress: 72,
-    eta: "2 分 14 秒",
-    owner: "Chris Chen",
-  },
-  {
-    id: "SIM-2047",
-    name: "LLaMA-405B 训练 · PD 融合",
-    kind: "training",
-    scene: "pd_fused",
-    status: "queued",
-    progress: 0,
-    eta: "排队中",
-    owner: "仿真工程师",
-  },
-  {
-    id: "SIM-2046",
-    name: "GNN 基准 · graph workload",
-    kind: "graph",
-    scene: "pd_fused",
-    status: "success",
-    progress: 100,
-    eta: "3 分 45 秒",
-    owner: "系统管理员",
-  },
-  {
-    id: "SIM-2045",
-    name: "通用计算 · 8192 batch",
-    kind: "general",
-    scene: "pd_separate",
-    status: "failed",
-    progress: 34,
-    eta: "OOM 终止",
-    owner: "Chris Chen",
-  },
-  {
-    id: "SIM-2044",
-    name: "LLaMA-3-70B 推理 · PD 融合",
-    kind: "inference",
-    scene: "pd_fused",
-    status: "success",
-    progress: 100,
-    eta: "12 分 8 秒",
-    owner: "仿真工程师",
-  },
-];
 
 function statusBadge(s: string) {
   switch (s) {
@@ -156,6 +104,25 @@ function sceneLabel(s: string) {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [tasks, setTasks] = useState<DashboardTask[]>([]);
+  const [stats, setStats] = useState<DashboardStat[]>([]);
+  const [quickEntries, setQuickEntries] = useState<DashboardQuickEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await api.getDashboard();
+        setTasks(data.tasks);
+        setStats(data.stats);
+        setQuickEntries(data.quick_entries);
+      } catch {
+        /* keep empty state */
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const navigate = (p: PageId) => {
     if (p === "dashboard") {
@@ -165,158 +132,72 @@ export default function DashboardPage() {
     }
   };
 
+  const statColorClass: Record<string, string> = {
+    cyan: styles.statCardIconCyan,
+    amber: styles.statCardIconAmber,
+    green: styles.statCardIconGreen,
+    red: styles.statCardIconRed,
+  };
+  const trendClass: Record<string, string> = {
+    up: styles.trendUp,
+    down: styles.trendDown,
+    neutral: styles.trendNeutral,
+  };
+  const trendTagClass: Record<string, string> = {
+    success: styles.trendTagSuccess,
+    info: styles.trendTagInfo,
+  };
+
   return (
     <div className={styles.pageWrapper}>
-      <div className={styles.headerCard}>
-        <div className={styles.headerIcon}>
-          <LayoutDashboard size={24} />
-        </div>
-        <div className={styles.headerContent}>
-          <h2 className={styles.headerTitle}>总览 Dashboard</h2>
-          <div className={styles.headerSubtitle}>
-            近 24 小时任务概览、资源与能耗指标，快速进入当前活跃仿真场景。
-          </div>
-        </div>
-        <div className={styles.headerActions}>
-          <button
-            className={`${styles.btn} ${styles.btnPrimary}`}
-            onClick={() => navigate("simulation/workload/inference")}
-          >
-            <Microscope size={14} />
-            新建推理仿真
-          </button>
-          <button
-            className={`${styles.btn} ${styles.btnSecondary}`}
-            onClick={() => navigate("simulation/workload/training")}
-          >
-            <Zap size={14} />
-            新建训练仿真
-          </button>
-        </div>
-      </div>
-
       <div className={styles.statsRow}>
-        <div className={styles.statCard}>
-          <div className={`${styles.statCardIcon} ${styles.statCardIconCyan}`}>
-            <Microscope size={18} />
-          </div>
-          <div className={styles.statCardLabel}>今日仿真任务</div>
-          <div className={styles.statCardValue}>
-            28
-            <span className={styles.statCardSuffix}>个</span>
-          </div>
-          <div className={`${styles.statCardTrend} ${styles.trendUp}`}>
-            <TrendingUp size={12} />
-            <span className={`${styles.trendTag} ${styles.trendTagSuccess}`}>
-              +12% vs 昨日
-            </span>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={`${styles.statCardIcon} ${styles.statCardIconAmber}`}>
-            <Clock size={18} />
-          </div>
-          <div className={styles.statCardLabel}>运行中 / 排队中</div>
-          <div className={styles.statCardValue}>
-            6
-            <span className={styles.statCardSuffix}>个</span>
-          </div>
-          <div className={`${styles.statCardTrend} ${styles.trendNeutral}`}>
-            <span className={`${styles.trendTag} ${styles.trendTagInfo}`}>
-              推理 3 · 训练 2 · 图算 1
-            </span>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={`${styles.statCardIcon} ${styles.statCardIconGreen}`}>
-            <CheckCircle2 size={18} />
-          </div>
-          <div className={styles.statCardLabel}>成功率</div>
-          <div className={styles.statCardValue}>
-            92.3
-            <span className={styles.statCardSuffix}>%</span>
-          </div>
-          <div className={`${styles.statCardTrend} ${styles.trendUp}`}>
-            <TrendingUp size={12} />
-            <span className={`${styles.trendTag} ${styles.trendTagSuccess}`}>
-              SLA 95% ✓
-            </span>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={`${styles.statCardIcon} ${styles.statCardIconRed}`}>
-            <XCircle size={18} />
-          </div>
-          <div className={styles.statCardLabel}>平均耗时</div>
-          <div className={styles.statCardValue}>
-            8.4
-            <span className={styles.statCardSuffix}>分</span>
-          </div>
-          <div className={`${styles.statCardTrend} ${styles.trendDown}`}>
-            <TrendingDown size={12} />
-            <span className={`${styles.trendTag} ${styles.trendTagSuccess}`}>
-              -6.2% vs 上周
-            </span>
-          </div>
-        </div>
+        {loading ? (
+          <div style={{ color: "var(--text-tertiary)", padding: "1rem" }}>加载中...</div>
+        ) : (
+          stats.map((s) => (
+            <div className={styles.statCard} key={s.label}>
+              <div className={`${styles.statCardIcon} ${statColorClass[s.color] ?? ""}`}>
+                {ICON_MAP[s.icon] ?? <Microscope size={18} />}
+              </div>
+              <div className={styles.statCardLabel}>{s.label}</div>
+              <div className={styles.statCardValue}>
+                {s.value}
+                <span className={styles.statCardSuffix}>{s.suffix}</span>
+              </div>
+              <div className={`${styles.statCardTrend} ${trendClass[s.trend] ?? ""}`}>
+                {s.trend === "up" && <TrendingUp size={12} />}
+                {s.trend === "down" && <TrendingDown size={12} />}
+                <span className={`${styles.trendTag} ${trendTagClass[s.trend_type] ?? ""}`}>
+                  {s.trend_label}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <div className={styles.quickEntries}>
-        {[
-          {
-            title: "推理服务仿真",
-            desc: "LLM 推理负载，支持 PD 分离与融合部署对比。",
-            icon: <Zap size={22} />,
-            bg: "rgba(34, 211, 238, 0.12)",
-            fg: "var(--brand-400)",
-            goto: "simulation/workload/inference" as PageId,
-          },
-          {
-            title: "模型训练仿真",
-            desc: "大模型训练负载，分析 MFU 与通信瓶颈。",
-            icon: <Bot size={22} />,
-            bg: "rgba(52, 211, 153, 0.12)",
-            fg: "var(--success)",
-            goto: "simulation/workload/training" as PageId,
-          },
-          {
-            title: "通用计算仿真",
-            desc: "HPC、通用批处理与科学计算负载。",
-            icon: <Code2 size={22} />,
-            bg: "rgba(251, 191, 36, 0.12)",
-            fg: "var(--accent-400)",
-            goto: "simulation/workload/general" as PageId,
-          },
-          {
-            title: "系统仿真",
-            desc: "芯片、服务器、网络与集群拓扑的系统级评估。",
-            icon: <Network size={22} />,
-            bg: "rgba(167, 139, 250, 0.12)",
-            fg: "var(--purple)",
-            goto: "simulation/workload/inference" as PageId,
-          },
-        ].map((m) => (
-          <button
-            key={m.title}
-            className={styles.quickEntryCard}
-            onClick={() => navigate(m.goto)}
-          >
-            <div
-              className={styles.quickEntryIcon}
-              style={{ background: m.bg, color: m.fg }}
+        {loading ? null : (
+          quickEntries.map((m) => (
+            <button
+              key={m.title}
+              className={styles.quickEntryCard}
+              onClick={() => navigate(m.goto as PageId)}
             >
-              {m.icon}
-            </div>
-            <div className={styles.quickEntryTitle}>{m.title}</div>
-            <div className={styles.quickEntryDesc}>{m.desc}</div>
-            <div className={styles.quickEntryArrow}>
-              进入 <ArrowRight size={12} />
-            </div>
-          </button>
-        ))}
+              <div
+                className={styles.quickEntryIcon}
+                style={{ background: m.bg, color: m.fg }}
+              >
+                {ICON_MAP[m.icon] ?? <Zap size={22} />}
+              </div>
+              <div className={styles.quickEntryTitle}>{m.title}</div>
+              <div className={styles.quickEntryDesc}>{m.desc}</div>
+              <div className={styles.quickEntryArrow}>
+                进入 <ArrowRight size={12} />
+              </div>
+            </button>
+          ))
+        )}
       </div>
 
       <div className={styles.tableCard}>
@@ -337,42 +218,50 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {tasks.map((t) => (
-                <tr key={t.id}>
-                  <td style={{ fontFamily: "var(--font-mono)", color: "var(--text-tertiary)" }}>
-                    {t.id}
-                  </td>
-                  <td style={{ color: "var(--text-primary)", fontWeight: 500 }}>{t.name}</td>
-                  <td>{kindBadge(t.kind)}</td>
-                  <td>{sceneLabel(t.scene)}</td>
-                  <td>{statusBadge(t.status)}</td>
-                  <td>
-                    {t.status === "queued" ? (
-                      <span style={{ color: "var(--text-tertiary)", fontSize: 12 }}>
-                        等待调度
-                      </span>
-                    ) : (
-                      <div className={styles.progressBar}>
-                        <div
-                          className={styles.progressFill}
-                          style={{ width: `${t.progress}%` }}
-                        />
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    <button
-                      className={styles.viewBtn}
-                      onClick={() =>
-                        navigate(`simulation/workload/${t.kind}` as PageId)
-                      }
-                    >
-                      查看
-                      <ArrowRight size={12} />
-                    </button>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: "center", padding: "1rem", color: "var(--text-tertiary)" }}>
+                    加载中...
                   </td>
                 </tr>
-              ))}
+              ) : (
+                tasks.map((t) => (
+                  <tr key={t.id}>
+                    <td style={{ fontFamily: "var(--font-mono)", color: "var(--text-tertiary)" }}>
+                      {t.id}
+                    </td>
+                    <td style={{ color: "var(--text-primary)", fontWeight: 500 }}>{t.name}</td>
+                    <td>{kindBadge(t.kind)}</td>
+                    <td>{sceneLabel(t.scene)}</td>
+                    <td>{statusBadge(t.status)}</td>
+                    <td>
+                      {t.status === "queued" ? (
+                        <span style={{ color: "var(--text-tertiary)", fontSize: 12 }}>
+                          等待调度
+                        </span>
+                      ) : (
+                        <div className={styles.progressBar}>
+                          <div
+                            className={styles.progressFill}
+                            style={{ width: `${t.progress}%` }}
+                          />
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <button
+                        className={styles.viewBtn}
+                        onClick={() =>
+                          navigate(`simulation/workload/${t.kind}` as PageId)
+                        }
+                      >
+                        查看
+                        <ArrowRight size={12} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

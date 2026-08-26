@@ -11,7 +11,8 @@ import type {
   AgentContext,
   PageId,
 } from "./types";
-import { TOKEN_KEY, USER_KEY, BACKEND, headers } from "./utils";
+import { TOKEN_KEY, USER_KEY } from "./utils";
+import { api } from "./utils/api";
 
 export type ToastKind = "success" | "error" | "warning" | "info";
 type ToastItem = { id: number; kind: ToastKind; msg: string };
@@ -183,23 +184,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!token) return;
     (async () => {
       try {
-        const res = await fetch(`${BACKEND}/api/configurations`, {
-          headers: headers(token),
-        });
-        if (res.ok) {
-          const data = (await res.json()) as SimTemplate[];
-          const locals: SimTemplate[] = [];
-          Object.keys(localStorage).forEach((k) => {
-            if (k.startsWith("tpl-")) {
-              try {
-                locals.push(JSON.parse(localStorage.getItem(k)!));
-              } catch {
-                /* ignore */
-              }
+        const data = await api.getConfigurations(token);
+        const locals: SimTemplate[] = [];
+        Object.keys(localStorage).forEach((k) => {
+          if (k.startsWith("tpl-")) {
+            try {
+              locals.push(JSON.parse(localStorage.getItem(k)!));
+            } catch {
+              /* ignore */
             }
-          });
-          setTemplates([...data, ...locals]);
-        }
+          }
+        });
+        setTemplates([...data, ...locals]);
       } catch {
         /* keep empty */
       }
@@ -211,10 +207,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!token) return;
     (async () => {
       try {
-        const res = await fetch(`${BACKEND}/api/auth/me`, {
-          headers: headers(token),
-        });
-        if (!res.ok) {
+        const me = await api.getMe(token);
+        if (!me) {
           localStorage.removeItem(TOKEN_KEY);
           localStorage.removeItem(USER_KEY);
           setToken(null);
@@ -298,10 +292,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await fetch(`${BACKEND}/api/auth/logout`, {
-        method: "POST",
-        headers: headers(token ?? ""),
-      });
+      await api.logout(token ?? "");
     } catch {
       /* ignore */
     }

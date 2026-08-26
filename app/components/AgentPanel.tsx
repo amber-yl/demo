@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { AgentContext, User } from "../types";
 import { BACKEND, WORKLOAD_LABEL, SCENE_LABEL, headers } from "../utils";
+import { api } from "../utils/api";
 import styles from "./AgentPanel.module.less";
 
 type ChatMsg = {
@@ -32,13 +33,6 @@ type Props = {
   user: User;
   onApplyPrompt?: () => void;
 };
-
-const SUGGESTIONS = [
-  "如何降低首 Token 延迟？",
-  "PD 分离 vs 融合如何选？",
-  "配置最优批大小",
-  "训练场景如何提升 MFU？",
-];
 
 function flattenPatch(patch: Record<string, unknown>): [string, string][] {
   const rows: [string, string][] = [];
@@ -111,8 +105,16 @@ export default function AgentPanel({
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const bodyRef = useRef<HTMLDivElement>(null);
   const nextIdRef = useRef(2);
+
+  useEffect(() => {
+    api
+      .getAgentSuggestions()
+      .then(setSuggestions)
+      .catch(() => setSuggestions([]));
+  }, []);
 
   useEffect(() => {
     if (bodyRef.current) {
@@ -249,9 +251,8 @@ export default function AgentPanel({
           {messages.map((m) => (
             <div
               key={m.id}
-              className={`${styles.msgRow} ${
-                m.role === "user" ? styles.user : styles.agent
-              }`}
+              className={`${styles.msgRow} ${m.role === "user" ? styles.user : styles.agent
+                }`}
             >
               {m.role === "agent" && (
                 <div className={`${styles.msgAvatar} ${styles.agentAvatar}`}>
@@ -259,9 +260,8 @@ export default function AgentPanel({
                 </div>
               )}
               <div
-                className={`${styles.bubble} ${
-                  m.role === "user" ? styles.userBubble : styles.agentBubble
-                }`}
+                className={`${styles.bubble} ${m.role === "user" ? styles.userBubble : styles.agentBubble
+                  }`}
               >
                 {m.text}
                 {m.patches && m.patches.length > 0 && (
@@ -306,7 +306,7 @@ export default function AgentPanel({
 
           {messages.length <= 1 && (
             <div className={styles.suggestions}>
-              {SUGGESTIONS.map((s) => (
+              {suggestions.map((s) => (
                 <button
                   key={s}
                   className={styles.suggestionTag}
@@ -322,7 +322,7 @@ export default function AgentPanel({
 
         <div className={styles.footer}>
           <div className={styles.promptsRow}>
-            {SUGGESTIONS.map((s) => (
+            {suggestions.map((s) => (
               <button
                 key={s}
                 className={styles.promptChip}

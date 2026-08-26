@@ -6,12 +6,8 @@ import {
   LayoutDashboard,
   Microscope,
   Zap,
-  Bot,
-  Code2,
-  Network,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   LogOut,
 } from "lucide-react";
 import type { PageId, User, WorkloadKind } from "../types";
@@ -35,9 +31,6 @@ type WorkloadChild = {
 
 const workloadChildren: WorkloadChild[] = [
   { key: "inference", label: "推理服务", icon: <Zap size={16} /> },
-  { key: "training", label: "模型训练", icon: <Bot size={16} /> },
-  { key: "general", label: "通用计算", icon: <Code2 size={16} /> },
-  { key: "graph", label: "图神经网络", icon: <Network size={16} /> },
 ];
 
 function pageIdToPath(page: PageId | string): string {
@@ -63,8 +56,6 @@ export default function AppSidebar({
         ? (`simulation/workload/${pathname.split("/")[3]}` as PageId)
         : "dashboard";
 
-  const workloadOpen = activePageId.startsWith("simulation/workload/");
-  const [expanded, setExpanded] = useState<string[]>(workloadOpen ? ["simulation/workload"] : []);
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const [showUserPopover, setShowUserPopover] = useState(false);
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
@@ -115,12 +106,6 @@ export default function AppSidebar({
     router.push(pageIdToPath(p));
   };
 
-  const toggleExpand = (key: string) => {
-    setExpanded((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
-  };
-
   const isWorkloadParentActive = activePageId.startsWith("simulation/workload/");
 
   const handleCollapseBtnTooltipEnter = () => setShowTooltip("collapse");
@@ -169,7 +154,7 @@ export default function AppSidebar({
               if (collapsed) {
                 setHoveredMenu("simulation/workload");
               } else {
-                toggleExpand("simulation/workload");
+                navigate(`simulation/workload/${workloadChildren[0].key}` as PageId);
               }
             }}
             onMouseEnter={() => collapsed && setHoveredMenu("simulation/workload")}
@@ -179,23 +164,13 @@ export default function AppSidebar({
               <Microscope size={18} />
             </span>
             {!collapsed && (
-              <>
-                <span className={styles.menuLabel}>负载建模仿真</span>
-                <ChevronDown
-                  size={14}
-                  className={`${styles.menuArrow} ${expanded.includes("simulation/workload") ? styles.open : ""}`}
-                />
-              </>
+              <span className={styles.menuLabel}>负载建模仿真</span>
             )}
           </button>
 
           {!collapsed && (
             <div
-              className={`${styles.subMenu} ${expanded.includes("simulation/workload") ? "" : styles.collapsed}`}
-              style={{
-                maxHeight: expanded.includes("simulation/workload") ? 400 : 0,
-                opacity: expanded.includes("simulation/workload") ? 1 : 0,
-              }}
+              className={styles.subMenu}
             >
               {workloadChildren.map((child) => {
                 const pageKey = `simulation/workload/${child.key}` as PageId;

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  LayoutDashboard,
   Zap,
   CheckCircle2,
   XCircle,
@@ -160,34 +159,6 @@ function sceneLabel(s: string) {
 export default function DashboardPage({ onNavigate }: Props) {
   return (
     <div className={styles.pageWrapper}>
-      <div className={styles.headerCard}>
-        <div className={styles.headerIcon}>
-          <LayoutDashboard size={24} />
-        </div>
-        <div className={styles.headerContent}>
-          <h2 className={styles.headerTitle}>总览 Dashboard</h2>
-          <div className={styles.headerSubtitle}>
-            近 24 小时任务概览、资源与能耗指标，快速进入当前活跃仿真场景。
-          </div>
-        </div>
-        <div className={styles.headerActions}>
-          <button
-            className={`${styles.btn} ${styles.btnPrimary}`}
-            onClick={() => onNavigate("simulation/workload/inference")}
-          >
-            <Microscope size={14} />
-            新建推理仿真
-          </button>
-          <button
-            className={`${styles.btn} ${styles.btnSecondary}`}
-            onClick={() => onNavigate("simulation/workload/training")}
-          >
-            <Zap size={14} />
-            新建训练仿真
-          </button>
-        </div>
-      </div>
-
       <div className={styles.statsRow}>
         <div className={styles.statCard}>
           <div className={`${styles.statCardIcon} ${styles.statCardIconCyan}`}>

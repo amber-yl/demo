@@ -321,11 +321,183 @@ CONFIG_TEMPLATES: dict[str, dict[str, Any]] = {
 }
 
 
+# ---------------------------- Static data (served via API) ----------------------------
+
+FIELD_OPTIONS: dict[str, list[str]] = {
+    "precision": ["FP8", "FP16", "BF16", "FP32", "INT8", "INT4"],
+    "gpu_model": ["A100 40GB", "A100 80GB", "A100 80GB SXM", "H100 80GB", "H800 80GB", "MI300X", "B200"],
+    "parallel": ["TP 1 × DP 1", "TP 2 × DP 1", "TP 4 × DP 1", "TP 8 × DP 1", "TP 8 × DP 2", "TP 8 × PP 2 × DP 2", "TP 8 × PP 4 × DP 2", "DP 8", "DP 16", "DP 32", "DP 64"],
+    "interconnect": ["PCIe 5.0", "NVLink 3", "NVLink 4", "IB 200G", "IB 400G", "Infinity Fabric"],
+    "framework": ["vLLM", "TGI", "TensorRT-LLM", "Megatron-LM", "DeepSpeed", "PyTorch 2.5", "DGL 2.0"],
+    "scheduler": ["Continous Batching", "Static Batching", "3D Parallel", "ZeRO-3", "Default", "GraphSAINT"],
+    "quantization": ["无量化", "FP16", "BF16", "FP8", "INT8 AWQ", "INT4 GPTQ", "INT4 AWQ"],
+    "kvcache_policy": ["Auto", "Full", "Half", "Lazy", "—"],
+}
+
+GPU_TYPES = ["A100 40GB", "A100 80GB", "A100 80GB SXM", "H100 80GB", "H800 80GB", "MI300X", "B200"]
+PRECISIONS = ["FP8", "FP16", "BF16", "FP32", "INT8", "INT4"]
+QUANTS = ["无量化", "FP16", "BF16", "FP8", "INT8 AWQ", "INT4 GPTQ", "INT4 AWQ"]
+BITWIDTHS = ["4", "8", "16", "32"]
+STRATEGIES = ["dynamic-batching", "continuous-batching", "fused", "beam", "naive", "greedy"]
+PARALLEL_LEVELS = ["TP 1 × DP 1", "TP 2 × DP 1", "TP 4 × DP 1", "TP 8 × DP 1", "TP 8 × DP 2", "TP 8 × PP 2 × DP 2", "TP 8 × PP 4 × DP 2", "DP 8", "DP 16", "DP 32", "DP 64"]
+
+SECTION_META = [
+    {"key": "model", "title": "模型参数", "icon": "M", "bg": "rgba(34,211,238,.14)", "color": "#22d3ee"},
+    {"key": "system", "title": "系统拓扑", "icon": "S", "bg": "rgba(52,211,153,.14)", "color": "#34d399"},
+    {"key": "runtime", "title": "运行时参数", "icon": "R", "bg": "rgba(167,139,250,.14)", "color": "#a78bfa"},
+]
+
+WORKLOAD_DEFAULTS_BY_KIND: dict[str, dict[str, Any]] = {
+    "inference": {
+        "scene": "pd_separate", "strategy": "continuous-batching", "requestRate": 1000,
+        "batchSize": 256, "concurrency": 1024, "qosLatency": 500,
+        "gpuType": "A100 80GB", "gpuMemory": 80, "gpuCount": 8,
+        "vllm": True, "paged": True, "chunkPrefill": True, "memFraction": 0.9,
+        "cpuCore": 16, "cpuMemory": 128, "replicas": 1, "kvCacheRatio": 0.5,
+        "precision": "FP16", "quant": "FP16", "quantizationBitwidth": "16",
+        "quantW8A8": False, "quantW4A16": False, "useLora": False,
+        "maxModelLen": 32768, "parallelLevel": "TP 8 × DP 1",
+    },
+    "training": {
+        "scene": "pd_fused", "strategy": "fused", "requestRate": 128,
+        "batchSize": 2048, "concurrency": 128, "qosLatency": 5000,
+        "gpuType": "H100 80GB", "gpuMemory": 80, "gpuCount": 64,
+        "vllm": False, "paged": False, "chunkPrefill": False, "memFraction": 0.85,
+        "cpuCore": 32, "cpuMemory": 512, "replicas": 1, "kvCacheRatio": 0.2,
+        "precision": "BF16", "quant": "BF16", "quantizationBitwidth": "16",
+        "quantW8A8": False, "quantW4A16": False, "useLora": True,
+        "maxModelLen": 8192, "parallelLevel": "TP 8 × PP 4 × DP 2",
+    },
+    "general": {
+        "scene": "pd_separate", "strategy": "dynamic-batching", "requestRate": 5000,
+        "batchSize": 8192, "concurrency": 512, "qosLatency": 1000,
+        "gpuType": "H100 80GB", "gpuMemory": 80, "gpuCount": 16,
+        "vllm": False, "paged": False, "chunkPrefill": False, "memFraction": 0.95,
+        "cpuCore": 16, "cpuMemory": 256, "replicas": 2, "kvCacheRatio": 0.0,
+        "precision": "FP32", "quant": "FP32", "quantizationBitwidth": "32",
+        "quantW8A8": False, "quantW4A16": False, "useLora": False,
+        "maxModelLen": 0, "parallelLevel": "DP 16",
+    },
+    "graph": {
+        "scene": "pd_fused", "strategy": "greedy", "requestRate": 500,
+        "batchSize": 65536, "concurrency": 256, "qosLatency": 2000,
+        "gpuType": "MI300X", "gpuMemory": 192, "gpuCount": 8,
+        "vllm": False, "paged": False, "chunkPrefill": False, "memFraction": 0.88,
+        "cpuCore": 24, "cpuMemory": 384, "replicas": 1, "kvCacheRatio": 0.0,
+        "precision": "FP16", "quant": "FP16", "quantizationBitwidth": "16",
+        "quantW8A8": False, "quantW4A16": False, "useLora": False,
+        "maxModelLen": 0, "parallelLevel": "DP 8",
+    },
+}
+
+DEFAULT_BY_WORKLOAD: dict[str, dict[str, Any]] = {
+    "inference": {
+        "scene": "pd_separate",
+        "model": {"model_name": "LLaMA-3-70B", "param_size": "70B", "precision": "FP16", "context_length": "32768", "moe_experts": "8"},
+        "system": {"gpu_model": "A100 80GB", "gpu_count": "8", "parallel": "TP 8 × DP 1", "interconnect": "NVLink 4", "batch_size": "256"},
+        "runtime": {"framework": "vLLM", "scheduler": "Continous Batching", "quantization": "FP16", "kvcache_policy": "Auto", "concurrency": "1024"},
+    },
+    "training": {
+        "scene": "pd_fused",
+        "model": {"model_name": "LLaMA-3-405B", "param_size": "405B", "precision": "BF16", "context_length": "8192", "moe_experts": "16"},
+        "system": {"gpu_model": "H100 80GB", "gpu_count": "64", "parallel": "TP 8 × PP 4 × DP 2", "interconnect": "NVLink 4 + IB 400G", "batch_size": "2048"},
+        "runtime": {"framework": "Megatron-LM", "scheduler": "3D Parallel", "quantization": "BF16", "kvcache_policy": "—", "concurrency": "128"},
+    },
+    "general": {
+        "scene": "pd_separate",
+        "model": {"model_name": "通用算子库", "param_size": "—", "precision": "FP32", "context_length": "—", "moe_experts": "—"},
+        "system": {"gpu_model": "H100 80GB", "gpu_count": "16", "parallel": "DP 16", "interconnect": "IB 400G", "batch_size": "8192"},
+        "runtime": {"framework": "PyTorch 2.5", "scheduler": "Default", "quantization": "FP32", "kvcache_policy": "—", "concurrency": "512"},
+    },
+    "graph": {
+        "scene": "pd_fused",
+        "model": {"model_name": "GNN-MoE", "param_size": "24B", "precision": "FP16", "context_length": "—", "moe_experts": "8"},
+        "system": {"gpu_model": "MI300X", "gpu_count": "8", "parallel": "DP 8", "interconnect": "Infinity Fabric", "batch_size": "65536"},
+        "runtime": {"framework": "DGL 2.0", "scheduler": "GraphSAINT", "quantization": "FP16", "kvcache_policy": "—", "concurrency": "256"},
+    },
+}
+
+DASHBOARD_TASKS: list[dict[str, Any]] = [
+    {"id": "SIM-2048", "name": "LLaMA-3-70B 推理 · PD 分离", "kind": "inference", "scene": "pd_separate", "status": "running", "progress": 72, "eta": "2 分 14 秒", "owner": "Chris Chen"},
+    {"id": "SIM-2047", "name": "LLaMA-405B 训练 · PD 融合", "kind": "training", "scene": "pd_fused", "status": "queued", "progress": 0, "eta": "排队中", "owner": "仿真工程师"},
+    {"id": "SIM-2046", "name": "GNN 基准 · graph workload", "kind": "graph", "scene": "pd_fused", "status": "success", "progress": 100, "eta": "3 分 45 秒", "owner": "系统管理员"},
+    {"id": "SIM-2045", "name": "通用计算 · 8192 batch", "kind": "general", "scene": "pd_separate", "status": "failed", "progress": 34, "eta": "OOM 终止", "owner": "Chris Chen"},
+    {"id": "SIM-2044", "name": "LLaMA-3-70B 推理 · PD 融合", "kind": "inference", "scene": "pd_fused", "status": "success", "progress": 100, "eta": "12 分 8 秒", "owner": "仿真工程师"},
+]
+
+DASHBOARD_STATS: list[dict[str, Any]] = [
+    {"label": "今日仿真任务", "value": 28, "suffix": "个", "icon": "Microscope", "color": "cyan", "trend": "up", "trend_label": "+12% vs 昨日", "trend_type": "success"},
+    {"label": "运行中 / 排队中", "value": 6, "suffix": "个", "icon": "Clock", "color": "amber", "trend": "neutral", "trend_label": "推理 3 · 训练 2 · 图算 1", "trend_type": "info"},
+    {"label": "成功率", "value": 92.3, "suffix": "%", "icon": "CheckCircle2", "color": "green", "trend": "up", "trend_label": "SLA 95% ✓", "trend_type": "success"},
+    {"label": "平均耗时", "value": 8.4, "suffix": "分", "icon": "XCircle", "color": "red", "trend": "down", "trend_label": "-6.2% vs 上周", "trend_type": "success"},
+]
+
+DASHBOARD_QUICK_ENTRIES: list[dict[str, Any]] = [
+    {"title": "推理服务仿真", "desc": "LLM 推理负载，支持 PD 分离与融合部署对比。", "icon": "Zap", "bg": "rgba(34, 211, 238, 0.12)", "fg": "var(--brand-400)", "goto": "simulation/workload/inference"},
+    {"title": "模型训练仿真", "desc": "大模型训练负载，分析 MFU 与通信瓶颈。", "icon": "Bot", "bg": "rgba(52, 211, 153, 0.12)", "fg": "var(--success)", "goto": "simulation/workload/training"},
+    {"title": "通用计算仿真", "desc": "HPC、通用批处理与科学计算负载。", "icon": "Code2", "bg": "rgba(251, 191, 36, 0.12)", "fg": "var(--accent-400)", "goto": "simulation/workload/general"},
+    {"title": "系统仿真", "desc": "芯片、服务器、网络与集群拓扑的系统级评估。", "icon": "Network", "bg": "rgba(167, 139, 250, 0.12)", "fg": "var(--purple)", "goto": "simulation/system"},
+]
+
+AGENT_SUGGESTIONS: list[str] = [
+    "如何降低首 Token 延迟？",
+    "PD 分离 vs 融合如何选？",
+    "配置最优批大小",
+    "训练场景如何提升 MFU？",
+]
+
+GPU_MEMORY_MAP: dict[str, int] = {
+    "A100 40GB": 40, "A100 80GB": 80, "A100 80GB SXM": 80,
+    "H100 80GB": 80, "H800 80GB": 80, "MI300X": 192, "B200": 192,
+}
+
+
 # ---------------------------- Routes ----------------------------
 
 @app.get("/api/health")
 def health():
     return {"status": "ok", "service": "SimForge Simulation API", "version": "0.2.0"}
+
+
+@app.get("/api/options")
+def get_options(_: dict[str, str] = Depends(require_auth)):
+    """返回所有表单下拉选项和字段选项。"""
+    return {
+        "field_options": FIELD_OPTIONS,
+        "gpu_types": GPU_TYPES,
+        "precisions": PRECISIONS,
+        "quants": QUANTS,
+        "bitwidths": BITWIDTHS,
+        "strategies": STRATEGIES,
+        "parallel_levels": PARALLEL_LEVELS,
+        "section_meta": SECTION_META,
+        "gpu_memory_map": GPU_MEMORY_MAP,
+    }
+
+
+@app.get("/api/defaults")
+def get_defaults(_: dict[str, str] = Depends(require_auth)):
+    """返回各 workload 类型的默认配置。"""
+    return {
+        "workload_defaults": WORKLOAD_DEFAULTS_BY_KIND,
+        "default_by_workload": DEFAULT_BY_WORKLOAD,
+    }
+
+
+@app.get("/api/dashboard")
+def get_dashboard(_: dict[str, str] = Depends(require_auth)):
+    """返回 Dashboard 页面所需的任务列表、统计卡片和快捷入口数据。"""
+    return {
+        "tasks": DASHBOARD_TASKS,
+        "stats": DASHBOARD_STATS,
+        "quick_entries": DASHBOARD_QUICK_ENTRIES,
+    }
+
+
+@app.get("/api/agent/suggestions")
+def get_agent_suggestions(_: dict[str, str] = Depends(require_auth)):
+    """返回 AI 助手推荐问题列表。"""
+    return {"suggestions": AGENT_SUGGESTIONS}
 
 
 @app.post("/api/auth/login", response_model=LoginResponse)
