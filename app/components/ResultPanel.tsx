@@ -10,15 +10,13 @@ import {
   LineChart as LineChartIcon,
   GitBranch,
   History,
-  Sparkles,
-  CheckCircle2,
   Eye,
 } from "lucide-react";
 import LineChart from "@/components/LineChart";
 import type { SimResult, WorkloadKind, SceneKind } from "@/types";
 import styles from "./ResultPanel.module.less";
 
-type TabKey = "linechart" | "stages" | "recommendations";
+type TabKey = "linechart" | "stages";
 
 type Props = {
   result: SimResult | null;
@@ -31,8 +29,6 @@ type Props = {
 const KIND_LABEL: Record<WorkloadKind, string> = {
   inference: "推理",
   training: "训练",
-  general: "通算",
-  graph: "图算",
 };
 
 const SCENE_LABEL: Record<SceneKind, string> = {
@@ -71,24 +67,6 @@ export default function ResultPanel({
     : "0 / 0";
   const tokensPerSec = metrics?.throughput_tokens_s ?? 0;
 
-  const recommendations = useMemo(() => {
-    const recs: string[] = [];
-    if (result?.recommendation) {
-      const parts = result.recommendation
-        .split(/(?<=[。；;])\s*/)
-        .map((s) => s.trim())
-        .filter(Boolean);
-      recs.push(...parts);
-    }
-    if (recs.length === 0 && result?.recommendation) {
-      recs.push(result.recommendation);
-    }
-    if (recs.length === 0) {
-      recs.push("基于当前场景参数已生成合理估算，可调整并行策略或量化精度后再对比。");
-    }
-    return recs;
-  }, [result?.recommendation]);
-
   const recentRuns = useMemo(() => {
     if (!result) return [];
     const rows: {
@@ -101,7 +79,7 @@ export default function ResultPanel({
     const baseTps = metrics?.throughput_tokens_s ?? 1000;
     const baseP95 = metrics?.latency_p99_ms ?? 100;
     const scenes: SceneKind[] = ["pd_separate", "pd_fused"];
-    const kinds: WorkloadKind[] = ["inference", "training", "general", "graph"];
+    const kinds: WorkloadKind[] = ["inference", "training"];
     for (let i = 0; i < 5; i++) {
       const factor = 0.75 + 0.25 * Math.sin(i * 1.7 + kind.length);
       const now = new Date();
@@ -267,35 +245,6 @@ export default function ResultPanel({
                   {metrics?.latency_p99_ms ?? 0} ms
                 </span>
               </div>
-            </div>
-          )}
-
-          {activeTab === "recommendations" && (
-            <div className={styles.recommendations}>
-              <div className={styles.recHeader}>
-                <Sparkles size={14} style={{ color: "var(--purple)" }} />
-                <span>AI Recommendations</span>
-              </div>
-              {recommendations.map((rec, i) => (
-                <div className={styles.recTag} key={i}>
-                  <span className={styles.recBadge}>
-                    {i === 0 ? (
-                      <Sparkles size={12} strokeWidth={2.2} />
-                    ) : (
-                      <CheckCircle2 size={12} strokeWidth={2.2} />
-                    )}
-                  </span>
-                  <span>{rec}</span>
-                </div>
-              ))}
-              {result.recommendation && (
-                <div className={styles.recSummary} style={{ marginTop: 8 }}>
-                  <h4>
-                    {KIND_LABEL[kind]} · <b>{SCENE_LABEL[scene]}</b> 场景洞察
-                  </h4>
-                  <p>{result.recommendation}</p>
-                </div>
-              )}
             </div>
           )}
         </div>

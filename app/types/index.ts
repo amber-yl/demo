@@ -1,5 +1,5 @@
 // 全局共享类型
-export type WorkloadKind = "inference" | "training" | "general" | "graph";
+export type WorkloadKind = "inference" | "training";
 export type SceneKind = "pd_separate" | "pd_fused";
 export type PageId =
   | "dashboard"

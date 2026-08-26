@@ -2,8 +2,6 @@ import {
   Microscope,
   Zap,
   Activity,
-  Network,
-  Cpu,
   type LucideIcon,
 } from "lucide-react";
 
@@ -40,8 +38,6 @@ export type RouteGroup = {
 const workloadChildren: RouteMeta[] = [
   { path: "/simulation/workload/inference", title: "推理服务", icon: Zap, subtitle: "Inference" },
   { path: "/simulation/workload/training", title: "模型训练", icon: Activity, subtitle: "Training" },
-  { path: "/simulation/workload/general", title: "通用计算", icon: Cpu, subtitle: "General" },
-  { path: "/simulation/workload/graph", title: "图神经网络", icon: Network, subtitle: "Graph" },
 ];
 
 // ============= 自动发现静态路由 =============

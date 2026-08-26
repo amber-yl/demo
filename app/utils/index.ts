@@ -11,8 +11,6 @@ export const USER_KEY = "simforge_user";
 export const WORKLOAD_LABEL: Record<WorkloadKind, string> = {
   inference: "推理服务",
   training: "模型训练",
-  general: "通用计算",
-  graph: "图神经网络",
 };
 
 export const SCENE_LABEL: Record<SceneKind, string> = {

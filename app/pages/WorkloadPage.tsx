@@ -67,8 +67,6 @@ export type WorkloadConfig = {
 export const WORKLOAD_KIND_ORDER: WorkloadKind[] = [
   "inference",
   "training",
-  "general",
-  "graph",
 ];
 
 const CONFIG_WHITELIST: (keyof WorkloadConfig)[] = [
@@ -110,8 +108,6 @@ function mockSimResult(kind: WorkloadKind, scene: SceneKind): SimResult {
   > = {
     inference: { tps: 8200, p50: 28, mfu: 0.52 },
     training: { tps: 320, p50: 350, mfu: 0.46 },
-    general: { tps: 12500, p50: 18, mfu: 0.68 },
-    graph: { tps: 980, p50: 110, mfu: 0.38 },
   };
   const base = baseScale[kind];
   const pdSepBoost = scene === "pd_separate" ? 1.08 : 0.94;
@@ -194,7 +190,7 @@ function mockSimResult(kind: WorkloadKind, scene: SceneKind): SimResult {
     metrics: {
       throughput_tokens_s: throughput,
       throughput_flops_tf:
-        kind === "training" || kind === "general" ? tflops : null,
+        kind === "training" ? tflops : null,
       latency_p50_ms: latencyP50,
       latency_p99_ms: latencyP99,
       vram_gb_per_gpu: +vramPerGpu.toFixed(1),
@@ -1148,13 +1144,14 @@ export default function WorkloadPage({
               className={`${styles.btn} ${styles.btnPrimary}`}
               onClick={runSimulation}
               disabled={runState === "running"}
+              style={{ color: "#fff" }}
             >
               {runState === "success" ? (
                 <CheckCircle2 size={16} />
               ) : (
                 <PlayCircle size={16} />
               )}
-              <span>
+              <span >
                 {runState === "running"
                   ? `运行中 ${progress}%`
                   : runState === "success"

@@ -179,8 +179,9 @@ export default function AppSidebar({
           mode="inline"
           inlineCollapsed={collapsed}
           selectedKeys={activeKey ? [activeKey] : []}
-          openKeys={collapsed ? [] : openKeys}
-          onOpenChange={(keys) => !collapsed && setOpenKeys(keys as string[])}
+          {...(collapsed
+            ? {}
+            : { openKeys, onOpenChange: (keys: string[]) => setOpenKeys(keys) })}
           items={menuItems}
           onClick={handleMenuClick}
           theme={theme}
