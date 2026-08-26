@@ -1,7 +1,7 @@
 import type {
   WorkloadKind,
   SceneKind,
-} from "../types";
+} from "@/types";
 
 // ============= 基础常量 =============
 export const BACKEND = "http://127.0.0.1:8000";

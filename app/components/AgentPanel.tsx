@@ -11,10 +11,11 @@ import {
   Wand2,
   ChevronRight,
 } from "lucide-react";
-import type { AgentContext, User } from "../types";
-import { BACKEND, WORKLOAD_LABEL, SCENE_LABEL, headers } from "../utils";
-import { api } from "../utils/api";
+import type { AgentContext, User } from "@/types";
+import { BACKEND, WORKLOAD_LABEL, SCENE_LABEL, headers } from "@/utils";
+import { api } from "@/utils/api";
 import styles from "./AgentPanel.module.less";
+import { Button } from 'antd';
 
 type ChatMsg = {
   id: number;
@@ -100,7 +101,7 @@ export default function AgentPanel({
       id: 1,
       role: "agent",
       text: "我可以读取当前仿真上下文。试试问我：「如何降低首 Token 延迟？」「PD 分离 vs 融合如何选？」「配置最优批大小」。",
-      time: Date.now(),
+      time: new Date().getTime() as number,
     },
   ]);
   const [input, setInput] = useState("");
@@ -132,7 +133,7 @@ export default function AgentPanel({
       id: nextIdRef.current++,
       role: "user",
       text,
-      time: Date.now(),
+      time: new Date().getTime() as number,
     };
     setMessages((p) => [...p, userMsg]);
     setInput("");
@@ -148,7 +149,7 @@ export default function AgentPanel({
         id: nextIdRef.current++,
         role: "agent",
         text: data.reply ?? "暂未回复",
-        time: Date.now(),
+        time: new Date().getTime() as number,
       };
       if (data.patch) {
         agentMsg.patches = Array.isArray(data.patch) ? data.patch : [data.patch];
@@ -195,20 +196,14 @@ export default function AgentPanel({
 
   return (
     <>
-      <div
+      <Button
         className={styles.fab}
         onClick={onClose}
-        role="button"
         aria-label={open ? "关闭 AI 助手" : "打开 Nebula AI 助手"}
         title={open ? "关闭 AI 助手" : "打开 Nebula AI 助手"}
       >
         <Sparkles />
-      </div>
-
-      <div
-        className={`${styles.mask} ${open ? styles.open : ""}`}
-        onClick={onClose}
-      />
+      </Button>
 
       <div className={`${styles.drawer} ${open ? styles.open : ""}`}>
         <div className={styles.header}>

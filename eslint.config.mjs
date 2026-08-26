@@ -36,7 +36,8 @@ const eslintConfig = defineConfig([
       },
     },
     rules: {
-      "jsx-a11y/no-autofocus": "off"
+      "jsx-a11y/no-autofocus": "off",
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 ]);

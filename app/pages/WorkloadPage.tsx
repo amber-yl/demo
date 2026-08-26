@@ -20,20 +20,20 @@ import {
   FileJson,
   X,
 } from "lucide-react";
-import ResultPanel from "../components/ResultPanel";
+import ResultPanel from "@/components/ResultPanel";
 import type {
   WorkloadKind,
   SceneKind,
   SimTemplate,
   AgentContext,
   SimResult,
-} from "../types";
+} from "@/types";
 import {
   WORKLOAD_LABEL,
   SCENE_LABEL,
-} from "../utils";
-import { api } from "../utils/api";
-import type { OptionsData } from "../utils/api";
+} from "@/utils";
+import { api } from "@/utils/api";
+import type { OptionsData } from "@/utils/api";
 import styles from "./WorkloadPage.module.less";
 
 export type WorkloadConfig = {
@@ -600,7 +600,7 @@ export default function WorkloadPage({
                 <span className={styles.summaryIcon}>
                   <Gauge size={16} />
                 </span>
-                <span className={styles.summaryTitle}>服务参数</span>
+                <span className={styles.summaryTitle}>模型配置</span>
                 {serviceOpen ? (
                   <ChevronDown size={16} className={styles.summaryArrow} />
                 ) : (
@@ -696,7 +696,7 @@ export default function WorkloadPage({
                 <span className={`${styles.summaryIcon} ${styles.green}`}>
                   <Server size={16} />
                 </span>
-                <span className={styles.summaryTitle}>GPU & 模型</span>
+                <span className={styles.summaryTitle}>硬件配置</span>
                 {gpuOpen ? (
                   <ChevronDown size={16} className={styles.summaryArrow} />
                 ) : (
@@ -1001,7 +1001,7 @@ export default function WorkloadPage({
                 <span className={`${styles.summaryIcon} ${styles.purple}`}>
                   <Cpu size={16} />
                 </span>
-                <span className={styles.summaryTitle}>资源 & 并行</span>
+                <span className={styles.summaryTitle}>运行时配置</span>
                 {resourceOpen ? (
                   <ChevronDown size={16} className={styles.summaryArrow} />
                 ) : (

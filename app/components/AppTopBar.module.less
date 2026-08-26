@@ -9,6 +9,43 @@
   flex-shrink: 0;
 }
 
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.backBtn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--brand-500);
+  color: var(--brand-400);
+}
+
+.crumbLink {
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--brand-400);
+  text-decoration: none;
+}
+
+.crumbLink:hover {
+  color: var(--brand-300);
+  text-decoration: underline;
+}
+
 .breadcrumb {
   display: flex;
   align-items: center;

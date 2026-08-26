@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { message } from "antd";
 import type {
   User,
   SimTemplate,
@@ -10,12 +11,9 @@ import type {
   SimResult,
   AgentContext,
   PageId,
-} from "./types";
-import { TOKEN_KEY, USER_KEY } from "./utils";
-import { api } from "./utils/api";
-
-export type ToastKind = "success" | "error" | "warning" | "info";
-type ToastItem = { id: number; kind: ToastKind; msg: string };
+} from "@/types";
+import { TOKEN_KEY, USER_KEY } from "@/utils";
+import { api } from "@/utils/api";
 
 export type ToastApi = {
   success: (m: string) => void;
@@ -103,25 +101,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     config_id: null,
   });
   const agentContextRef = useRef<AgentContext>(agentContextState);
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const toastIdRef = useRef(1);
 
-  // ---------- toast api ----------
-  const pushToast = useCallback((kind: ToastKind, msg: string) => {
-    const id = toastIdRef.current++;
-    setToasts((prev) => [...prev, { id, kind, msg }]);
-    window.setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
-  }, []);
+  // ---------- toast api (antd message) ----------
   const toast = useMemo<ToastApi>(
     () => ({
-      success: (m) => pushToast("success", m),
-      error: (m) => pushToast("error", m),
-      warning: (m) => pushToast("warning", m),
-      info: (m) => pushToast("info", m),
+      success: (m) => message.success(m),
+      error: (m) => message.error(m),
+      warning: (m) => message.warning(m),
+      info: (m) => message.info(m),
     }),
-    [pushToast],
+    [],
   );
 
   // ---------- 主题 + localStorage ----------
@@ -333,13 +322,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={value}>
-      <ul className="sf-toast-stack" aria-label="global notifications">
-        {toasts.map((t) => (
-          <li key={t.id} className={`sf-toast sf-toast-${t.kind}`}>
-            {t.msg}
-          </li>
-        ))}
-      </ul>
       {children}
     </AppContext.Provider>
   );

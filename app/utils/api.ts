@@ -7,7 +7,7 @@ import type {
   SimTemplate,
   SimResult,
   User,
-} from "../types";
+} from "@/types";
 
 // ============= 类型定义 =============
 
@@ -87,6 +87,7 @@ export type DashboardQuickEntry = {
   icon: string;
   bg: string;
   fg: string;
+  accent: string;
   goto: string;
 };
 

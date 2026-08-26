@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { WorkloadKind, SceneKind, SimResult } from "../types";
+import type { WorkloadKind, SceneKind, SimResult } from "@/types";
 
 // ============= 主题切换 Hook =============
 export function useTheme() {

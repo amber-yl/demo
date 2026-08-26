@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import LoginPage from "./components/LoginPage";
-import { useApp } from "./context";
+import { useApp } from "@/context";
 
 export default function HomePage() {
   const { token, user } = useApp();
@@ -12,12 +11,10 @@ export default function HomePage() {
   useEffect(() => {
     if (token && user) {
       router.replace("/dashboard");
+    } else {
+      router.replace("/login");
     }
   }, [token, user, router]);
 
-  if (token && user) {
-    return null;
-  }
-
-  return <LoginPage />;
+  return null;
 }

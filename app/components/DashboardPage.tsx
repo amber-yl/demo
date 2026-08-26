@@ -16,19 +16,19 @@ import {
   Bot,
   Code2,
 } from "lucide-react";
-import type { PageId } from "../types";
-import { api, type DashboardTask, type DashboardStat, type DashboardQuickEntry } from "../utils/api";
-import styles from "../pages/DashboardPage.module.less";
+import type { PageId } from "@/types";
+import { api, type DashboardTask, type DashboardStat, type DashboardQuickEntry } from "@/utils/api";
+import styles from "@/pages/DashboardPage.module.less";
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Microscope: <Microscope size={18} />,
   Clock: <Clock size={18} />,
   CheckCircle2: <CheckCircle2 size={18} />,
   XCircle: <XCircle size={18} />,
-  Zap: <Zap size={22} />,
-  Bot: <Bot size={22} />,
-  Code2: <Code2 size={22} />,
-  Network: <Network size={22} />,
+  Zap: <Zap size={24} />,
+  Bot: <Bot size={24} />,
+  Code2: <Code2 size={24} />,
+  Network: <Network size={24} />,
 };
 
 function statusBadge(s: string) {
@@ -150,32 +150,7 @@ export default function DashboardPage() {
 
   return (
     <div className={styles.pageWrapper}>
-      <div className={styles.statsRow}>
-        {loading ? (
-          <div style={{ color: "var(--text-tertiary)", padding: "1rem" }}>加载中...</div>
-        ) : (
-          stats.map((s) => (
-            <div className={styles.statCard} key={s.label}>
-              <div className={`${styles.statCardIcon} ${statColorClass[s.color] ?? ""}`}>
-                {ICON_MAP[s.icon] ?? <Microscope size={18} />}
-              </div>
-              <div className={styles.statCardLabel}>{s.label}</div>
-              <div className={styles.statCardValue}>
-                {s.value}
-                <span className={styles.statCardSuffix}>{s.suffix}</span>
-              </div>
-              <div className={`${styles.statCardTrend} ${trendClass[s.trend] ?? ""}`}>
-                {s.trend === "up" && <TrendingUp size={12} />}
-                {s.trend === "down" && <TrendingDown size={12} />}
-                <span className={`${styles.trendTag} ${trendTagClass[s.trend_type] ?? ""}`}>
-                  {s.trend_label}
-                </span>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
+      {/* 仿真入口 — 大卡片，最显眼 */}
       <div className={styles.quickEntries}>
         {loading ? null : (
           quickEntries.map((m) => (
@@ -185,85 +160,126 @@ export default function DashboardPage() {
               onClick={() => navigate(m.goto as PageId)}
             >
               <div
+                className={styles.quickEntryAccent}
+                style={{ background: m.accent }}
+              />
+              <div
                 className={styles.quickEntryIcon}
                 style={{ background: m.bg, color: m.fg }}
               >
-                {ICON_MAP[m.icon] ?? <Zap size={22} />}
+                {ICON_MAP[m.icon] ?? <Zap size={24} />}
               </div>
               <div className={styles.quickEntryTitle}>{m.title}</div>
               <div className={styles.quickEntryDesc}>{m.desc}</div>
               <div className={styles.quickEntryArrow}>
-                进入 <ArrowRight size={12} />
+                开始仿真
+                <ArrowRight size={14} />
               </div>
             </button>
           ))
         )}
       </div>
 
-      <div className={styles.tableCard}>
-        <div className={styles.tableHeader}>
-          <div className={styles.tableTitle}>最近仿真任务列表</div>
+      {/* 底部：统计概览 + 最近任务 */}
+      <div className={styles.bottomRow}>
+        {/* 统计概览 */}
+        <div className={styles.statsCol}>
+          <div className={styles.sectionTitle}>数据概览</div>
+          <div className={styles.statsGrid}>
+            {loading ? (
+              <div style={{ color: "var(--text-tertiary)", padding: "1rem" }}>加载中...</div>
+            ) : (
+              stats.map((s) => (
+                <div className={styles.statCard} key={s.label}>
+                  <div className={`${styles.statCardIcon} ${statColorClass[s.color] ?? ""}`}>
+                    {ICON_MAP[s.icon] ?? <Microscope size={18} />}
+                  </div>
+                  <div className={styles.statCardLabel}>{s.label}</div>
+                  <div className={styles.statCardValue}>
+                    {s.value}
+                    <span className={styles.statCardSuffix}>{s.suffix}</span>
+                  </div>
+                  <div className={`${styles.statCardTrend} ${trendClass[s.trend] ?? ""}`}>
+                    {s.trend === "up" && <TrendingUp size={12} />}
+                    {s.trend === "down" && <TrendingDown size={12} />}
+                    <span className={`${styles.trendTag} ${trendTagClass[s.trend_type] ?? ""}`}>
+                      {s.trend_label}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>任务 ID</th>
-                <th>任务名</th>
-                <th>Kind</th>
-                <th>场景</th>
-                <th>状态</th>
-                <th>进度</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: "center", padding: "1rem", color: "var(--text-tertiary)" }}>
-                    加载中...
-                  </td>
-                </tr>
-              ) : (
-                tasks.map((t) => (
-                  <tr key={t.id}>
-                    <td style={{ fontFamily: "var(--font-mono)", color: "var(--text-tertiary)" }}>
-                      {t.id}
-                    </td>
-                    <td style={{ color: "var(--text-primary)", fontWeight: 500 }}>{t.name}</td>
-                    <td>{kindBadge(t.kind)}</td>
-                    <td>{sceneLabel(t.scene)}</td>
-                    <td>{statusBadge(t.status)}</td>
-                    <td>
-                      {t.status === "queued" ? (
-                        <span style={{ color: "var(--text-tertiary)", fontSize: 12 }}>
-                          等待调度
-                        </span>
-                      ) : (
-                        <div className={styles.progressBar}>
-                          <div
-                            className={styles.progressFill}
-                            style={{ width: `${t.progress}%` }}
-                          />
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        className={styles.viewBtn}
-                        onClick={() =>
-                          navigate(`simulation/workload/${t.kind}` as PageId)
-                        }
-                      >
-                        查看
-                        <ArrowRight size={12} />
-                      </button>
-                    </td>
+
+        {/* 最近任务列表 */}
+        <div className={styles.tableCol}>
+          <div className={styles.tableCard}>
+            <div className={styles.tableHeader}>
+              <div className={styles.tableTitle}>最近仿真任务</div>
+            </div>
+            <div className={styles.tableWrapper}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>任务 ID</th>
+                    <th>任务名</th>
+                    <th>类型</th>
+                    <th>场景</th>
+                    <th>状态</th>
+                    <th>进度</th>
+                    <th>操作</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: "center", padding: "1rem", color: "var(--text-tertiary)" }}>
+                        加载中...
+                      </td>
+                    </tr>
+                  ) : (
+                    tasks.map((t) => (
+                      <tr key={t.id}>
+                        <td style={{ fontFamily: "var(--font-mono)", color: "var(--text-tertiary)" }}>
+                          {t.id}
+                        </td>
+                        <td style={{ color: "var(--text-primary)", fontWeight: 500 }}>{t.name}</td>
+                        <td>{kindBadge(t.kind)}</td>
+                        <td>{sceneLabel(t.scene)}</td>
+                        <td>{statusBadge(t.status)}</td>
+                        <td>
+                          {t.status === "queued" ? (
+                            <span style={{ color: "var(--text-tertiary)", fontSize: 12 }}>
+                              等待调度
+                            </span>
+                          ) : (
+                            <div className={styles.progressBar}>
+                              <div
+                                className={styles.progressFill}
+                                style={{ width: `${t.progress}%` }}
+                              />
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <button
+                            className={styles.viewBtn}
+                            onClick={() =>
+                              navigate(`simulation/workload/${t.kind}` as PageId)
+                            }
+                          >
+                            查看
+                            <ArrowRight size={12} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>

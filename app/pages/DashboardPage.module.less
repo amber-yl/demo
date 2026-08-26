@@ -6,93 +6,8 @@
   overflow: hidden;
 }
 
-.headerCard {
-  background: linear-gradient(120deg, rgba(34, 211, 238, 0.14), rgba(167, 139, 250, 0.14));
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 14px 20px;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  flex-shrink: 0;
-}
-
-.headerIcon {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #22d3ee, #a78bfa);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.headerContent {
-  flex: 1;
-  min-width: 0;
-}
-
-.headerTitle {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.headerSubtitle {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-top: 6px;
-  line-height: 1.6;
-}
-
-.headerActions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.15s;
-  white-space: nowrap;
-  cursor: pointer;
-  border: none;
-}
-
-.btnPrimary {
-  background: linear-gradient(135deg, var(--brand-600), var(--brand-700));
-  color: #061219;
-  font-weight: 600;
-}
-
-.btnPrimary:hover {
-  background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
-  box-shadow: 0 4px 16px rgba(34, 211, 238, 0.25);
-}
-
-.btnSecondary {
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  color: var(--text-primary);
-}
-
-.btnSecondary:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-strong);
-}
-
-.statsRow {
+/* ============ 仿真入口卡片 ============ */
+.quickEntries {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
@@ -100,25 +15,146 @@
 }
 
 @media (max-width: 1280px) {
-  .statsRow {
+  .quickEntries {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+.quickEntryCard {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 20px 16px 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: left;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 160px;
+}
+
+.quickEntryCard:hover {
+  border-color: var(--brand-600);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(34, 211, 238, 0.15);
+  background: var(--bg-card-hover);
+}
+
+.quickEntryAccent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  opacity: 0.8;
+  transition: opacity 0.25s;
+}
+
+.quickEntryCard:hover .quickEntryAccent {
+  opacity: 1;
+  height: 4px;
+}
+
+.quickEntryIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  transition: transform 0.25s;
+}
+
+.quickEntryCard:hover .quickEntryIcon {
+  transform: scale(1.08);
+}
+
+.quickEntryTitle {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.quickEntryDesc {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+  margin-bottom: auto;
+  flex: 1;
+}
+
+.quickEntryArrow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--brand-400);
+  font-weight: 600;
+  margin-top: 10px;
+  transition: gap 0.2s;
+}
+
+.quickEntryCard:hover .quickEntryArrow {
+  gap: 8px;
+}
+
+/* ============ 底部行：统计 + 任务列表 ============ */
+.bottomRow {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 1280px) {
+  .bottomRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.statsCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .statCard {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 12px 16px;
+  padding: 12px 14px;
 }
 
 .statCardIcon {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
   display: grid;
   place-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .statCardIconCyan {
@@ -142,21 +178,21 @@
 }
 
 .statCardLabel {
-  font-size: 12.5px;
+  font-size: 11.5px;
   color: var(--text-tertiary);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .statCardValue {
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 700;
   line-height: 1.1;
   color: var(--text-primary);
 }
 
 .statCardSuffix {
-  font-size: 16px;
+  font-size: 13px;
   color: var(--text-secondary);
   font-weight: 500;
   margin-left: 2px;
@@ -166,8 +202,9 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-top: 10px;
-  font-size: 12px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
 }
 
 .trendUp {
@@ -179,13 +216,13 @@
 }
 
 .trendNeutral {
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
 }
 
 .trendTag {
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 500;
 }
 
@@ -199,76 +236,11 @@
   color: var(--text-secondary);
 }
 
-.quickEntries {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-@media (max-width: 1280px) {
-  .quickEntries {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.quickEntryCard {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 14px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  text-align: left;
-}
-
-.quickEntryCard:hover {
-  border-color: var(--brand-600);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-  background: var(--bg-card-hover);
-}
-
-.quickEntryIcon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+/* ============ 任务列表 ============ */
+.tableCol {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 12px;
-}
-
-.quickEntryTitle {
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: var(--text-primary);
-}
-
-.quickEntryDesc {
-  font-size: 12.5px;
-  color: var(--text-tertiary);
-  line-height: 1.6;
-  margin-bottom: 12px;
-}
-
-.quickEntryArrow {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12.5px;
-  color: var(--brand-400);
-  font-weight: 500;
-  opacity: 0;
-  transform: translateX(-4px);
-  transition: all 0.2s ease;
-}
-
-.quickEntryCard:hover .quickEntryArrow {
-  opacity: 1;
-  transform: translateX(0);
+  flex-direction: column;
+  min-height: 0;
 }
 
 .tableCard {
@@ -286,13 +258,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
 
 .tableTitle {
-  font-size: 14.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -311,8 +283,8 @@
 
 .table th {
   text-align: left;
-  padding: 12px 16px;
-  font-size: 12px;
+  padding: 10px 14px;
+  font-size: 11.5px;
   font-weight: 500;
   color: var(--text-tertiary);
   background: var(--bg-elevated);
@@ -321,8 +293,8 @@
 }
 
 .table td {
-  padding: 12px 16px;
-  font-size: 13px;
+  padding: 10px 14px;
+  font-size: 12.5px;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-subtle);
   white-space: nowrap;
@@ -336,6 +308,7 @@
   background: var(--bg-card-hover);
 }
 
+/* ============ 状态标签 ============ */
 .statusBadge {
   display: inline-flex;
   align-items: center;
@@ -390,8 +363,7 @@
 }
 
 @keyframes pulse {
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
   }
   50% {
@@ -399,6 +371,7 @@
   }
 }
 
+/* ============ 类型标签 ============ */
 .kindBadge {
   display: inline-flex;
   align-items: center;
@@ -429,8 +402,9 @@
   color: #ec4899;
 }
 
+/* ============ 进度条 & 操作按钮 ============ */
 .progressBar {
-  width: 180px;
+  width: 140px;
   height: 6px;
   background: var(--bg-input);
   border-radius: 3px;
@@ -448,14 +422,15 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 12px;
-  font-size: 12px;
+  padding: 4px 10px;
+  font-size: 11.5px;
   color: var(--text-tertiary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   background: transparent;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .viewBtn:hover {

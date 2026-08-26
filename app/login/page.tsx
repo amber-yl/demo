@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   User as UserIcon,
   Lock as LockIcon,
   LogIn as LogInIcon,
-  AlertTriangle as ExclamationTriangleIcon,
   Sparkles as SparklesIcon,
 } from "lucide-react";
-import type { User } from "../types";
-import { BACKEND } from "../utils";
-import { useToast, useApp } from "../context";
+import type { User } from "@/types";
+import { BACKEND } from "@/utils";
+import { useToast, useApp } from "@/context";
 import styles from "./Login.module.less";
 
 const DEMO_USERS: Record<string, { pwd: string; user: User }> = {
@@ -43,15 +43,14 @@ const DEMO_USERS: Record<string, { pwd: string; user: User }> = {
   },
 };
 
-export default function LoginPage() {
+export default function Page() {
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
   const toast = useToast();
   const { login } = useApp();
+  const router = useRouter();
 
   const doLogin = async (vals: { username: string; password: string }) => {
     setLoading(true);
-    setErr(null);
     try {
       const res = await fetch(`${BACKEND}/api/auth/login`, {
         method: "POST",
@@ -68,6 +67,7 @@ export default function LoginPage() {
           role: data.user?.role ?? data.role ?? DEMO_USERS[vals.username]?.user.role ?? "user",
         };
         login(token, user);
+        router.push("/dashboard");
         return;
       }
       throw new Error(`后端拒绝：${res.status}`);
@@ -77,14 +77,14 @@ export default function LoginPage() {
         const token = `demo-local-${vals.username}-${Date.now()}`;
         login(token, demo.user);
         toast.success(`（离线演示）欢迎回来，${demo.user.name}`);
+        router.push("/dashboard");
         return;
       }
-      setErr(
+      toast.error(
         demo
           ? "密码不正确（演示账号已内置，默认同账号名前缀 + 123）"
-          : `用户名或密码不正确；或后端 ${BACKEND}/api/auth/login 不可达。\n演示账号：admin/admin123、chris/chris123、engineer/sim123。`,
+          : `用户名或密码不正确；或后端 ${BACKEND}/api/auth/login 不可达。演示账号：admin/admin123、chris/chris123、engineer/sim123。`,
       );
-      toast.error("登录失败");
     } finally {
       setLoading(false);
     }
@@ -108,16 +108,6 @@ export default function LoginPage() {
           <h1 className={styles.title}>SimForge · Nebula Lab</h1>
           <p className={styles.subtitle}>智能仿真管理平台</p>
         </div>
-
-        {err && (
-          <div className={styles.errorAlert} role="alert">
-            <ExclamationTriangleIcon className={styles.errorIcon} />
-            <div className={styles.errorContent}>
-              <p className={styles.errorTitle}>登录失败</p>
-              <p className={styles.errorMessage}>{err}</p>
-            </div>
-          </div>
-        )}
 
         <form className={styles.loginForm} onSubmit={handleSubmit} noValidate>
           <div className={styles.formGroup}>
@@ -191,5 +181,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-import React from "react";

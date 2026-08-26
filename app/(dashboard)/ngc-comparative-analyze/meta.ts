@@ -1,0 +1,16 @@
+import { BarChart3 } from "lucide-react";
+import type { RouteMeta } from "@/routes";
+
+/**
+ * 路由元数据 —— 侧边栏导航自动发现此文件
+ * 约定：在 app/(dashboard)/<route>/ 下创建 meta.ts 即自动出现在侧边栏
+ */
+const meta: RouteMeta = {
+  path: "/ngc-comparative-analyze",
+  title: "NGC 对比分析",
+  icon: BarChart3,
+  subtitle: "NGC Comparative Analyze",
+  order: 3,
+};
+
+export default meta;

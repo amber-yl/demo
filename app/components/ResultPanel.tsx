@@ -14,8 +14,8 @@ import {
   CheckCircle2,
   Eye,
 } from "lucide-react";
-import LineChart from "./LineChart";
-import type { SimResult, WorkloadKind, SceneKind } from "../types";
+import LineChart from "@/components/LineChart";
+import type { SimResult, WorkloadKind, SceneKind } from "@/types";
 import styles from "./ResultPanel.module.less";
 
 type TabKey = "linechart" | "stages" | "recommendations";

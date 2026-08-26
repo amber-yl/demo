@@ -2,9 +2,9 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useApp } from "../../../../context";
-import type { WorkloadKind } from "../../../../types";
-import OriginalWorkloadPage from "../../../../pages/WorkloadPage";
+import { useApp } from "@/context";
+import type { WorkloadKind } from "@/types";
+import OriginalWorkloadPage from "@/pages/WorkloadPage";
 
 const VALID_KINDS: WorkloadKind[] = ["inference", "training", "general", "graph"];
 

@@ -1,41 +1,65 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { Menu, Tooltip } from "antd";
+import type { MenuProps } from "antd";
 import {
-  LayoutDashboard,
-  Microscope,
-  Zap,
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Home,
 } from "lucide-react";
-import type { PageId, User, WorkloadKind } from "../types";
-import { WORKLOAD_LABEL, ROLE_LABEL } from "../utils";
+import type { User } from "@/types";
+import { ROLE_LABEL } from "@/utils";
+import {
+  ROUTE_GROUPS,
+  STANDALONE_ROUTES,
+  isPathInGroup,
+} from "@/routes";
 import styles from "./AppSidebar.module.less";
 
 type Props = {
   user: User;
-  currentPage: PageId;
   onLogout: () => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
   theme: "dark" | "light";
 };
 
-type WorkloadChild = {
-  key: WorkloadKind;
-  label: string;
-  icon: React.ReactNode;
-};
+/** 将路由配置转为 antd Menu items */
+function buildMenuItems(): MenuProps["items"] {
+  const items: MenuProps["items"] = [];
 
-const workloadChildren: WorkloadChild[] = [
-  { key: "inference", label: "推理服务", icon: <Zap size={16} /> },
-];
+  // 分组路由（有子菜单）
+  for (const group of ROUTE_GROUPS) {
+    const GroupIcon = group.icon;
+    items.push({
+      key: group.key,
+      icon: <GroupIcon size={16} />,
+      label: group.title,
+      children: group.children.map((child) => {
+        const ChildIcon = child.icon;
+        return {
+          key: child.path,
+          icon: <ChildIcon size={14} />,
+          label: child.title,
+        };
+      }),
+    });
+  }
 
-function pageIdToPath(page: PageId | string): string {
-  if (page === "dashboard") return "/dashboard";
-  return `/${page}`;
+  // 独立路由（无子菜单）
+  for (const route of STANDALONE_ROUTES) {
+    const RouteIcon = route.icon;
+    items.push({
+      key: route.path,
+      icon: <RouteIcon size={16} />,
+      label: route.title,
+    });
+  }
+
+  return items;
 }
 
 export default function AppSidebar({
@@ -47,38 +71,45 @@ export default function AppSidebar({
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
+  const navigate = (path: string) => router.push(path);
 
-  // 根据真实 URL pathname 决定高亮和展开状态，忽略 props currentPage
-  const activePageId: PageId =
-    pathname === "/dashboard"
-      ? "dashboard"
-      : pathname?.startsWith("/simulation/workload/")
-        ? (`simulation/workload/${pathname.split("/")[3]}` as PageId)
-        : "dashboard";
+  // 根据 pathname 确定选中项和展开的分组
+  let activeKey = "";
+  let activeGroupKey = "";
 
-  const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
+  for (const group of ROUTE_GROUPS) {
+    if (isPathInGroup(pathname, group.key)) {
+      activeGroupKey = group.key;
+      const child = group.children.find(
+        (c) => pathname === c.path || pathname.startsWith(c.path + "/"),
+      );
+      if (child) activeKey = child.path;
+      break;
+    }
+  }
+
+  if (!activeKey) {
+    for (const route of STANDALONE_ROUTES) {
+      if (pathname === route.path || pathname.startsWith(route.path + "/")) {
+        activeKey = route.path;
+        break;
+      }
+    }
+  }
+
+  const [openKeys, setOpenKeys] = useState<string[]>(
+    activeGroupKey ? [activeGroupKey] : [],
+  );
+
+  const handleMenuClick: MenuProps["onClick"] = ({ key }) => {
+    navigate(key);
+  };
+
+  // 用户信息弹出层（保留自定义实现）
   const [showUserPopover, setShowUserPopover] = useState(false);
-  const [showTooltip, setShowTooltip] = useState<string | null>(null);
-
-  const closeTimer = useRef<number | null>(null);
   const userCloseTimer = useRef<number | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-
   const userInitials = user.name.slice(0, 2).toUpperCase();
-
-  const clearClose = () => {
-    if (closeTimer.current) {
-      window.clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-  };
-
-  const delayedClose = (fn: () => void) => {
-    clearClose();
-    closeTimer.current = window.setTimeout(() => {
-      fn();
-    }, 150);
-  };
 
   const clearUserClose = () => {
     if (userCloseTimer.current) {
@@ -95,21 +126,10 @@ export default function AppSidebar({
   };
 
   useEffect(() => {
-    return () => {
-      clearClose();
-      clearUserClose();
-    };
+    return () => clearUserClose();
   }, []);
 
-  // 核心路由跳转：使用 Next.js router.push —— URL 会变化 ✅
-  const navigate = (p: PageId) => {
-    router.push(pageIdToPath(p));
-  };
-
-  const isWorkloadParentActive = activePageId.startsWith("simulation/workload/");
-
-  const handleCollapseBtnTooltipEnter = () => setShowTooltip("collapse");
-  const handleCollapseBtnTooltipLeave = () => setShowTooltip(null);
+  const menuItems = buildMenuItems();
 
   const sidebarClassName = [
     styles.sidebar,
@@ -130,97 +150,42 @@ export default function AppSidebar({
       </div>
 
       <div className={styles.menuArea}>
-        <div className={styles.menuItemGroup}>
+        {/* 返回 Dashboard 按钮 */}
+        {collapsed ? (
+          <Tooltip title="返回 Dashboard" placement="right">
+            <button
+              className={`${styles.menuItem} ${styles.homeBtn}`}
+              onClick={() => navigate("/dashboard")}
+            >
+              <span className={styles.menuIcon}>
+                <Home size={18} />
+              </span>
+            </button>
+          </Tooltip>
+        ) : (
           <button
-            className={`${styles.menuItem} ${activePageId === "dashboard" ? styles.active : ""}`}
-            onClick={() => navigate("dashboard")}
-            onMouseEnter={() => collapsed && setHoveredMenu("dashboard")}
-            onMouseLeave={() => collapsed && delayedClose(() => setHoveredMenu(null))}
+            className={`${styles.menuItem} ${styles.homeBtn}`}
+            onClick={() => navigate("/dashboard")}
           >
             <span className={styles.menuIcon}>
-              <LayoutDashboard size={18} />
+              <Home size={18} />
             </span>
-            {!collapsed && <span className={styles.menuLabel}>总览 Dashboard</span>}
+            <span className={styles.menuLabel}>返回 Dashboard</span>
           </button>
-          {collapsed && hoveredMenu === "dashboard" && (
-            <div className={styles.tooltip}>总览 Dashboard</div>
-          )}
-        </div>
+        )}
 
-        <div className={styles.menuItemGroup}>
-          <button
-            className={`${styles.menuItem} ${isWorkloadParentActive ? styles.active : ""}`}
-            onClick={() => {
-              if (collapsed) {
-                setHoveredMenu("simulation/workload");
-              } else {
-                navigate(`simulation/workload/${workloadChildren[0].key}` as PageId);
-              }
-            }}
-            onMouseEnter={() => collapsed && setHoveredMenu("simulation/workload")}
-            onMouseLeave={() => collapsed && delayedClose(() => setHoveredMenu(null))}
-          >
-            <span className={styles.menuIcon}>
-              <Microscope size={18} />
-            </span>
-            {!collapsed && (
-              <span className={styles.menuLabel}>负载建模仿真</span>
-            )}
-          </button>
-
-          {!collapsed && (
-            <div
-              className={styles.subMenu}
-            >
-              {workloadChildren.map((child) => {
-                const pageKey = `simulation/workload/${child.key}` as PageId;
-                return (
-                  <button
-                    key={child.key}
-                    className={`${styles.subMenuItem} ${activePageId === pageKey ? styles.active : ""}`}
-                    onClick={() => navigate(pageKey)}
-                  >
-                    <span style={{ width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {child.icon}
-                    </span>
-                    <span>{child.label}</span>
-                    <span className={styles.subMenuKindLabel}>{WORKLOAD_LABEL[child.key]}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {collapsed && hoveredMenu === "simulation/workload" && (
-            <div
-              className={styles.collapsedPopover}
-              onMouseEnter={clearClose}
-              onMouseLeave={() => delayedClose(() => setHoveredMenu(null))}
-            >
-              <div className={styles.popoverTitle}>
-                <Microscope size={14} />
-                负载建模仿真
-              </div>
-              <div className={styles.popoverList}>
-                {workloadChildren.map((child) => {
-                  const pageKey = `simulation/workload/${child.key}` as PageId;
-                  return (
-                    <button
-                      key={child.key}
-                      className={`${styles.popoverItem} ${activePageId === pageKey ? styles.active : ""}`}
-                      onClick={() => navigate(pageKey)}
-                    >
-                      {child.icon}
-                      <span style={{ flex: 1 }}>{child.label}</span>
-                      <span style={{ opacity: 0.6, fontSize: 12 }}>{WORKLOAD_LABEL[child.key]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
+        {/* antd Menu：收起模式下通过 Portal 渲染 tooltip/popup，不受父容器 overflow 限制 */}
+        <Menu
+          mode="inline"
+          inlineCollapsed={collapsed}
+          selectedKeys={activeKey ? [activeKey] : []}
+          openKeys={collapsed ? [] : openKeys}
+          onOpenChange={(keys) => !collapsed && setOpenKeys(keys as string[])}
+          items={menuItems}
+          onClick={handleMenuClick}
+          theme={theme}
+          className={styles.antMenu}
+        />
       </div>
 
       <div className={styles.footer}>
@@ -282,27 +247,14 @@ export default function AppSidebar({
           )}
         </div>
 
-        <div style={{ position: "relative" }}>
+        <Tooltip title={collapsed ? "展开侧栏" : "收起侧栏"} placement="right">
           <button
             className={styles.collapseBtn}
             onClick={onToggleCollapse}
-            onMouseEnter={handleCollapseBtnTooltipEnter}
-            onMouseLeave={handleCollapseBtnTooltipLeave}
           >
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
-          {showTooltip === "collapse" && (
-            <div
-              className={styles.tooltip}
-              style={{
-                left: collapsed ? "calc(100% + 4px)" : "auto",
-                right: collapsed ? "auto" : "calc(100% + 4px)",
-              }}
-            >
-              {collapsed ? "展开侧栏" : "收起侧栏"}
-            </div>
-          )}
-        </div>
+        </Tooltip>
       </div>
     </aside>
   );
