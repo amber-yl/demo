@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
+import { usePathname } from "next/navigation";
 import { ChevronRight, PlayCircle, Sun, Moon } from "lucide-react";
-import type { PageId, WorkloadKind, SceneKind } from "../types";
-import { WORKLOAD_LABEL, SCENE_LABEL } from "../utils";
+import type { PageId, WorkloadKind } from "../types";
+import { WORKLOAD_LABEL } from "../utils";
 import styles from "./AppTopBar.module.less";
 
 type Props = {
-  currentPage: PageId;
+  currentPage?: PageId;
   onRunSim?: () => void;
   theme: "dark" | "light";
   onToggleTheme: () => void;
@@ -19,22 +20,19 @@ type Crumb = {
   active?: boolean;
 };
 
-function buildCrumbs(page: PageId): Crumb[] {
+function buildCrumbs(page: PageId | string): Crumb[] {
   const crumbs: Crumb[] = [{ label: "Dashboard" }];
 
-  if (page === "dashboard") {
+  if (page === "dashboard" || page === "/dashboard") {
     crumbs.push({ label: "总览", active: true });
-  } else if (page.startsWith("simulation/workload/")) {
-    const kind = page.split("/")[2] as WorkloadKind;
+  } else if (page.startsWith("simulation/workload/") || page.startsWith("/simulation/workload/")) {
+    const parts = page.replace(/^\//, "").split("/");
+    const kind = parts[2] as WorkloadKind;
     crumbs.push({ label: "负载建模仿真" });
     crumbs.push({ label: WORKLOAD_LABEL[kind], active: true });
   }
 
   return crumbs;
-}
-
-function isWorkloadPage(page: PageId): page is `simulation/workload/${WorkloadKind}` {
-  return page.startsWith("simulation/workload/");
 }
 
 export default function AppTopBar({
@@ -43,14 +41,10 @@ export default function AppTopBar({
   theme,
   onToggleTheme,
 }: Props) {
-  const crumbs = buildCrumbs(currentPage);
-  const showSegmented = isWorkloadPage(currentPage);
-  const [scene, setScene] = useState<SceneKind>("pd_separate");
-
-  const handleSceneChange = (next: SceneKind) => {
-    setScene(next);
-    console.log("[AppTopBar] scene switched:", SCENE_LABEL[next]);
-  };
+  const pathname = usePathname();
+  // 用真实 URL pathname 作为来源，props 仅作为 fallback
+  const page = currentPage ?? (pathname === "/dashboard" ? "dashboard" : pathname?.slice(1) ?? "dashboard");
+  const crumbs = buildCrumbs(page);
 
   return (
     <div className={styles.topbar}>
@@ -76,31 +70,6 @@ export default function AppTopBar({
           );
         })}
       </nav>
-
-      <div className={styles.centerArea}>
-        {showSegmented && (
-          <div className={styles.segmented} role="tablist">
-            <button
-              role="tab"
-              aria-selected={scene === "pd_separate"}
-              className={`${styles.segmentedBtn} ${scene === "pd_separate" ? styles.segmentedBtnActive : ""}`}
-              onClick={() => handleSceneChange("pd_separate")}
-              type="button"
-            >
-              {SCENE_LABEL.pd_separate}
-            </button>
-            <button
-              role="tab"
-              aria-selected={scene === "pd_fused"}
-              className={`${styles.segmentedBtn} ${scene === "pd_fused" ? styles.segmentedBtnActive : ""}`}
-              onClick={() => handleSceneChange("pd_fused")}
-              type="button"
-            >
-              {SCENE_LABEL.pd_fused}
-            </button>
-          </div>
-        )}
-      </div>
 
       <div className={styles.rightArea}>
         {onRunSim && (

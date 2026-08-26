@@ -1,7 +1,4 @@
-// Toast 全局通知样式：通过 sf-toast-stack / sf-toast* 全局类名挂到页面
-// 注意：Less 默认会被 CSS modules 哈希，但我们在 className 里写的是"纯字符串"
-// 所以这些类名必须走 :global，否则 vite 会把 sf-toast 哈希成别的名字
-:global(.sf-toast-stack) {
+.sf-toast-stack {
   position: fixed;
   z-index: 9999;
   top: 24px;
@@ -18,7 +15,7 @@
   font-family: var(--font-sans);
 }
 
-:global(.sf-toast) {
+.sf-toast {
   min-width: 220px;
   max-width: 460px;
   padding: 10px 16px;

@@ -4,10 +4,6 @@ export type SceneKind = "pd_separate" | "pd_fused";
 export type PageId =
   | "dashboard"
   | `simulation/workload/${WorkloadKind}`
-  | "simulation/system"
-  | "terminal"
-  | "energy"
-  | "infrastructure";
 
 export type User = {
   username: string;

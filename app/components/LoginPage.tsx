@@ -9,8 +9,8 @@ import {
   Sparkles as SparklesIcon,
 } from "lucide-react";
 import type { User } from "../types";
-import { BACKEND, TOKEN_KEY, USER_KEY } from "../utils";
-import { useToast } from "../page";
+import { BACKEND } from "../utils";
+import { useToast, useApp } from "../context";
 import styles from "./Login.module.less";
 
 const DEMO_USERS: Record<string, { pwd: string; user: User }> = {
@@ -43,14 +43,11 @@ const DEMO_USERS: Record<string, { pwd: string; user: User }> = {
   },
 };
 
-type Props = {
-  onLogin: (token: string, user: User) => void;
-};
-
-export default function LoginPage({ onLogin }: Props) {
+export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const toast = useToast();
+  const { login } = useApp();
 
   const doLogin = async (vals: { username: string; password: string }) => {
     setLoading(true);
@@ -70,10 +67,7 @@ export default function LoginPage({ onLogin }: Props) {
           email: data.user?.email ?? data.email ?? `${vals.username}@simforge.internal`,
           role: data.user?.role ?? data.role ?? DEMO_USERS[vals.username]?.user.role ?? "user",
         };
-        localStorage.setItem(TOKEN_KEY, token);
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
-        onLogin(token, user);
-        toast.success(`欢迎回来，${user.name}`);
+        login(token, user);
         return;
       }
       throw new Error(`后端拒绝：${res.status}`);
@@ -81,9 +75,7 @@ export default function LoginPage({ onLogin }: Props) {
       const demo = DEMO_USERS[vals.username];
       if (demo && demo.pwd === vals.password) {
         const token = `demo-local-${vals.username}-${Date.now()}`;
-        localStorage.setItem(TOKEN_KEY, token);
-        localStorage.setItem(USER_KEY, JSON.stringify(demo.user));
-        onLogin(token, demo.user);
+        login(token, demo.user);
         toast.success(`（离线演示）欢迎回来，${demo.user.name}`);
         return;
       }

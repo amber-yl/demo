@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Microscope,
@@ -20,7 +21,6 @@ import styles from "./AppSidebar.module.less";
 type Props = {
   user: User;
   currentPage: PageId;
-  onNavigate: (p: PageId) => void;
   onLogout: () => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -40,16 +40,30 @@ const workloadChildren: WorkloadChild[] = [
   { key: "graph", label: "图神经网络", icon: <Network size={16} /> },
 ];
 
+function pageIdToPath(page: PageId | string): string {
+  if (page === "dashboard") return "/dashboard";
+  return `/${page}`;
+}
+
 export default function AppSidebar({
   user,
-  currentPage,
-  onNavigate,
   onLogout,
   collapsed,
   onToggleCollapse,
   theme,
 }: Props) {
-  const workloadOpen = currentPage.startsWith("simulation/workload/");
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // 根据真实 URL pathname 决定高亮和展开状态，忽略 props currentPage
+  const activePageId: PageId =
+    pathname === "/dashboard"
+      ? "dashboard"
+      : pathname?.startsWith("/simulation/workload/")
+        ? (`simulation/workload/${pathname.split("/")[3]}` as PageId)
+        : "dashboard";
+
+  const workloadOpen = activePageId.startsWith("simulation/workload/");
   const [expanded, setExpanded] = useState<string[]>(workloadOpen ? ["simulation/workload"] : []);
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const [showUserPopover, setShowUserPopover] = useState(false);
@@ -96,13 +110,18 @@ export default function AppSidebar({
     };
   }, []);
 
+  // 核心路由跳转：使用 Next.js router.push —— URL 会变化 ✅
+  const navigate = (p: PageId) => {
+    router.push(pageIdToPath(p));
+  };
+
   const toggleExpand = (key: string) => {
     setExpanded((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
     );
   };
 
-  const isWorkloadParentActive = currentPage.startsWith("simulation/workload/");
+  const isWorkloadParentActive = activePageId.startsWith("simulation/workload/");
 
   const handleCollapseBtnTooltipEnter = () => setShowTooltip("collapse");
   const handleCollapseBtnTooltipLeave = () => setShowTooltip(null);
@@ -128,8 +147,8 @@ export default function AppSidebar({
       <div className={styles.menuArea}>
         <div className={styles.menuItemGroup}>
           <button
-            className={`${styles.menuItem} ${currentPage === "dashboard" ? styles.active : ""}`}
-            onClick={() => onNavigate("dashboard")}
+            className={`${styles.menuItem} ${activePageId === "dashboard" ? styles.active : ""}`}
+            onClick={() => navigate("dashboard")}
             onMouseEnter={() => collapsed && setHoveredMenu("dashboard")}
             onMouseLeave={() => collapsed && delayedClose(() => setHoveredMenu(null))}
           >
@@ -183,8 +202,8 @@ export default function AppSidebar({
                 return (
                   <button
                     key={child.key}
-                    className={`${styles.subMenuItem} ${currentPage === pageKey ? styles.active : ""}`}
-                    onClick={() => onNavigate(pageKey)}
+                    className={`${styles.subMenuItem} ${activePageId === pageKey ? styles.active : ""}`}
+                    onClick={() => navigate(pageKey)}
                   >
                     <span style={{ width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {child.icon}
@@ -213,8 +232,8 @@ export default function AppSidebar({
                   return (
                     <button
                       key={child.key}
-                      className={`${styles.popoverItem} ${currentPage === pageKey ? styles.active : ""}`}
-                      onClick={() => onNavigate(pageKey)}
+                      className={`${styles.popoverItem} ${activePageId === pageKey ? styles.active : ""}`}
+                      onClick={() => navigate(pageKey)}
                     >
                       {child.icon}
                       <span style={{ flex: 1 }}>{child.label}</span>
