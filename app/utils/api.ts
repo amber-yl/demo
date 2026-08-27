@@ -59,6 +59,55 @@ export type DefaultsData = {
   >;
 };
 
+// ============= JSON Schema（模型/芯片配置） =============
+
+export type SchemaProperty = {
+  type?: string;
+  title?: string;
+  description?: string;
+  unit?: string;
+  enum?: string[];
+  "x-enum-label"?: string[];
+  minimum?: number;
+  maximum?: number;
+  default?: unknown;
+  // 与 enum 一一对应，每个枚举值对应一份该类型下的参数值集合
+  "x-variants"?: Record<string, unknown>[];
+  [key: string]: unknown;
+};
+
+export type ConfigSchema = {
+  type: string;
+  title?: string;
+  description?: string;
+  properties: Record<string, SchemaProperty>;
+  required?: string[];
+  // 需要在主界面展示的主要参数路径，如 "matrix_compute.fp16_tflops"
+  "x-main-paths"?: string[];
+  // 类型卡片选择（模型/芯片）展示元数据
+  "x-cards"?: SchemaCardMeta[];
+};
+
+export type SchemaCardMeta = {
+  /** 对应类型枚举值 */
+  type: string;
+  /** 分类（用于筛选 Tab） */
+  category?: string;
+  /** 标签 */
+  tags?: string[];
+  /** 一句话描述 */
+  description?: string;
+  /** 底部摘要行（如 "上下文: 32K"） */
+  summary?: string;
+  /** 是否推荐 */
+  recommended?: boolean;
+};
+
+export type SchemasData = {
+  model: ConfigSchema | null;
+  chip: ConfigSchema | null;
+};
+
 export type DashboardTask = {
   id: string;
   name: string;
@@ -200,6 +249,16 @@ export const api = {
 
   async getDefaults(): Promise<DefaultsData> {
     return request<DefaultsData>("/api/defaults");
+  },
+
+  // 模型/芯片配置 JSON Schema
+  async getSchemas(): Promise<SchemasData> {
+    try {
+      const res = await request<{ data: SchemasData }>("/api/schemas");
+      return res.data ?? { model: null, chip: null };
+    } catch {
+      return { model: null, chip: null };
+    }
   },
 
   // Dashboard

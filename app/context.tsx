@@ -40,9 +40,6 @@ type AppContextValue = {
   logout: () => Promise<void>;
   theme: "dark" | "light";
   toggleTheme: () => void;
-  sidebarCollapsed: boolean;
-  setSidebarCollapsed: (v: boolean) => void;
-  toggleSidebar: () => void;
   templates: SimTemplate[];
   agentOpen: boolean;
   setAgentOpen: (v: boolean) => void;
@@ -88,7 +85,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [resultCache, setResultCache] = useState<Record<string, SimResult>>({});
   const [externalRunCounter, setExternalRunCounter] = useState(0);
   const [theme, setTheme] = useState<"dark" | "light">("light");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [hydrated, setHydrated] = useState(false);
 
   // mounted 后从 localStorage / 浏览器 API 恢复状态
@@ -97,7 +93,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let savedToken: string | null = null;
     let savedUser: User | null = null;
     let restoredTheme: "dark" | "light" | null = null;
-    let shouldCollapse = false;
 
     try {
       savedToken = localStorage.getItem(TOKEN_KEY);
@@ -108,8 +103,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (savedThemeStr === "dark" || savedThemeStr === "light") {
         restoredTheme = savedThemeStr;
       }
-
-      shouldCollapse = window.innerWidth <= 1024;
     } catch {
       /* ignore localStorage access errors */
     }
@@ -118,7 +111,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (savedToken) setToken(savedToken);
       if (savedUser) setUser(savedUser);
       if (restoredTheme) setTheme(restoredTheme);
-      if (shouldCollapse) setSidebarCollapsed(true);
       // 关键：hydrated 必须在所有状态恢复完后才置 true，
       // 这样子组件的 auth guard 等 effect 才会在 token/user 有值之后再执行
       setHydrated(true);
@@ -154,26 +146,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     () => setTheme((t) => (t === "dark" ? "light" : "dark")),
     [],
   );
-  const toggleSidebar = useCallback(() => setSidebarCollapsed((v) => !v), []);
 
-  // ---------- rem 自适应 + 侧栏自动折叠 ----------
+  // ---------- rem 自适应 ----------
   useEffect(() => {
     const DESIGN_WIDTH = 1920;
     const BASE_FONT = 16;
     const MIN_RATIO = 0.6;
     const MAX_RATIO = 1.4;
-    const COLLAPSE_BREAKPOINT = 1024;
     let raf = 0;
-    let lastCollapseState: boolean | null = null;
     const apply = () => {
       const w = window.innerWidth;
       const ratio = Math.max(MIN_RATIO, Math.min(MAX_RATIO, w / DESIGN_WIDTH));
       document.documentElement.style.fontSize = `${BASE_FONT * ratio}px`;
-      if (lastCollapseState === null) {
-        const shouldCollapse = w <= COLLAPSE_BREAKPOINT;
-        setSidebarCollapsed((prev) => (prev === shouldCollapse ? prev : shouldCollapse));
-        lastCollapseState = shouldCollapse;
-      }
     };
     apply();
     const onResize = () => {
@@ -273,12 +257,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (raw: Record<string, unknown>) => {
       const patchPage = raw.__page as PageId | undefined;
       // 路由跳转：用 router.push 更新 URL ✅
-      let targetPath: string | null = null;
-      if (patchPage) {
-        targetPath = pageIdToPath(patchPage);
-      } else if (!pathname?.startsWith("/simulation/workload/")) {
-        targetPath = pageIdToPath("simulation/workload/inference");
-      }
+      const targetPath: string | null = patchPage
+        ? pageIdToPath(patchPage)
+        : null;
       if (targetPath && targetPath !== pathname) {
         router.push(targetPath);
       }
@@ -331,7 +312,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     hydrated,
     token, user, login, logout,
     theme, toggleTheme,
-    sidebarCollapsed, setSidebarCollapsed, toggleSidebar,
     templates,
     agentOpen, setAgentOpen,
     agentContextState, setAgentContextState, agentContextRef,
@@ -343,7 +323,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     hydrated,
     token, user, login, logout,
     theme, toggleTheme,
-    sidebarCollapsed, toggleSidebar,
     templates,
     agentOpen,
     agentContextState,

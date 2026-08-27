@@ -1,9 +1,4 @@
-import {
-  Microscope,
-  Zap,
-  Activity,
-  type LucideIcon,
-} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 /** 单条路由元数据 */
 export type RouteMeta = {
@@ -32,13 +27,6 @@ export type RouteGroup = {
   /** 子路由列表 */
   children: RouteMeta[];
 };
-
-// ============= 动态路由元数据 =============
-// [kind] 动态路由无法通过 meta.ts 自动发现，在此定义
-const workloadChildren: RouteMeta[] = [
-  { path: "/simulation/workload/inference", title: "推理服务", icon: Zap, subtitle: "Inference" },
-  { path: "/simulation/workload/training", title: "模型训练", icon: Activity, subtitle: "Training" },
-];
 
 // ============= 自动发现静态路由 =============
 // 扫描 app/(dashboard)/**/meta.ts，每个 meta.ts 导出 RouteMeta
@@ -92,12 +80,6 @@ const discoveredGroups: RouteGroup[] = Array.from(groupMap.entries()).map(
 // ============= 导出 =============
 
 export const ROUTE_GROUPS: RouteGroup[] = [
-  {
-    key: "simulation/workload",
-    title: "负载建模仿真",
-    icon: Microscope,
-    children: workloadChildren,
-  },
   ...discoveredGroups,
 ];
 

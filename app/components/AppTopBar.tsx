@@ -1,12 +1,16 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronRight, Sun, Moon } from "lucide-react";
+import { ChevronRight, Sun, Moon, LogOut } from "lucide-react";
+import type { User } from "@/types";
+import { ROLE_LABEL } from "@/utils";
 import { ROUTE_GROUPS, STANDALONE_ROUTES, isPathInGroup } from "@/routes";
 import styles from "./AppTopBar.module.less";
 
 type Props = {
+  user: User;
+  onLogout: () => void;
   currentPage?: string;
   onRunSim?: () => void;
   theme: "dark" | "light";
@@ -59,6 +63,8 @@ function buildCrumbs(pathname: string): Crumb[] {
 }
 
 export default function AppTopBar({
+  user,
+  onLogout,
   theme,
   onToggleTheme,
 }: Props) {
@@ -66,8 +72,48 @@ export default function AppTopBar({
   const pathname = usePathname();
   const crumbs = buildCrumbs(pathname);
 
+  // 用户信息弹出层（自侧边栏底部迁移至顶栏右上角）
+  const [showUserPopover, setShowUserPopover] = useState(false);
+  const userCloseTimer = useRef<number | null>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const userInitials = user.name.slice(0, 2).toUpperCase();
+
+  const clearUserClose = () => {
+    if (userCloseTimer.current) {
+      window.clearTimeout(userCloseTimer.current);
+      userCloseTimer.current = null;
+    }
+  };
+
+  const delayedUserClose = () => {
+    clearUserClose();
+    userCloseTimer.current = window.setTimeout(() => {
+      setShowUserPopover(false);
+    }, 200);
+  };
+
+  useEffect(() => {
+    return () => clearUserClose();
+  }, []);
+
   return (
     <div className={styles.topbar}>
+      {/* 品牌标识：左上角，点击返回 Dashboard */}
+      <button
+        className={styles.brandBar}
+        onClick={() => router.push("/dashboard")}
+        type="button"
+        title="返回 Dashboard"
+      >
+        <div className={styles.brandIcon}>S</div>
+        <div className={styles.brandText}>
+          <div className={styles.brandTitle}>Nebula Sim Lab</div>
+          <div className={styles.brandSubtitle}>智能仿真管理平台</div>
+        </div>
+      </button>
+
+      <span className={styles.brandDivider} aria-hidden="true" />
+
       <nav className={styles.breadcrumb} aria-label="breadcrumb">
         {crumbs.map((crumb, idx) => {
           const isLast = idx === crumbs.length - 1;
@@ -107,6 +153,62 @@ export default function AppTopBar({
         >
           {theme === "dark" ? <Sun /> : <Moon />}
         </button>
+
+        <div
+          className={styles.userArea}
+          role="button"
+          tabIndex={0}
+          onMouseEnter={() => {
+            clearUserClose();
+            setShowUserPopover(true);
+          }}
+          onMouseLeave={delayedUserClose}
+          onClick={(e) => {
+            if (popoverRef.current && popoverRef.current.contains(e.target as Node)) {
+              return;
+            }
+            setShowUserPopover((v) => !v);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setShowUserPopover((v) => !v);
+            }
+          }}
+        >
+          <div className={styles.avatar}>{userInitials}</div>
+          <div className={styles.userMeta}>
+            <div className={styles.userName}>{user.name}</div>
+            <div className={styles.userRole}>
+              {ROLE_LABEL[user.role] ?? user.role}
+            </div>
+          </div>
+
+          {showUserPopover && (
+            <div
+              ref={popoverRef}
+              className={styles.userPopover}
+              onMouseEnter={clearUserClose}
+              onMouseLeave={delayedUserClose}
+            >
+              <div className={styles.popoverHeader}>
+                <div className={styles.popoverAvatar}>{userInitials}</div>
+                <div className={styles.popoverUserInfo}>
+                  <div className={styles.popoverUserName}>{user.name}</div>
+                  <div className={styles.popoverUserEmail}>{user.email}</div>
+                </div>
+              </div>
+              <div className={styles.popoverDivider} />
+              <div className={styles.popoverRole}>
+                {ROLE_LABEL[user.role] ?? user.role}
+              </div>
+              <button className={styles.logoutBtn} onClick={onLogout}>
+                <LogOut size={14} />
+                退出登录
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

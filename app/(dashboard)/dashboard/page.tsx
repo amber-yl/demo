@@ -130,11 +130,8 @@ export default function DashboardRoutePage() {
   }, []);
 
   // 路由预热：用户停留在 Dashboard 期间后台 prefetch 目标路由，
-  // 触发 dev 模式按需编译（sidebar/topbar/AgentPanel + WorkloadPage 等），
-  // 使首次跳转从 ~8s 降至秒开
+  // 触发 dev 模式按需编译，使首次跳转从 ~8s 降至秒开
   useEffect(() => {
-    router.prefetch("/simulation/workload/inference");
-    router.prefetch("/simulation/workload/training");
     quickEntries.forEach((m) => {
       if (m.goto === "dashboard") return;
       router.prefetch(`/${m.goto}`);
@@ -283,7 +280,12 @@ export default function DashboardRoutePage() {
                           <button
                             className={styles.viewBtn}
                             onClick={() =>
-                              navigate(`simulation/workload/${t.kind}` as PageId)
+                              // 负载建模仿真路由已删除，任务详情跳转到复用 WorkloadPage 的 NGC 页面
+                              navigate(
+                                t.kind === "training"
+                                  ? "ngc-compute-memory-analyze"
+                                  : "ngc-inference-sim",
+                              )
                             }
                           >
                             查看

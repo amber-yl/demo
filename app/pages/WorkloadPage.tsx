@@ -3,24 +3,28 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   PlayCircle,
-  Save,
   Gauge,
   Server,
   Cpu,
-  CircleDollarSign,
-  Settings2,
-  ToggleLeft,
-  ToggleRight,
   ChevronDown,
   ChevronRight,
   Sparkles,
-  RefreshCw,
   AlertTriangle,
   CheckCircle2,
-  FileJson,
   X,
 } from "lucide-react";
+import { Drawer, Input, InputNumber, Select } from "antd";
 import ResultPanel from "@/components/ResultPanel";
+import {
+  SchemaCardGrid,
+  FieldRow,
+  FieldGrid,
+  typeKeyOf,
+  initValuesFromSchema,
+  validateSchemaFields,
+  resolveProp,
+} from "@/components/SchemaFormFields";
+import type { FieldErrors } from "@/components/SchemaFormFields";
 import type {
   WorkloadKind,
   SceneKind,
@@ -33,8 +37,15 @@ import {
   SCENE_LABEL,
 } from "@/utils";
 import { api } from "@/utils/api";
-import type { OptionsData } from "@/utils/api";
+import type {
+  OptionsData,
+  ConfigSchema,
+  SchemasData,
+} from "@/utils/api";
 import styles from "./WorkloadPage.module.less";
+
+/** 配置表单参数栅格列数（2 = 一行两列，每列「label + 输入框」） */
+const FORM_COLUMNS = 2;
 
 export type WorkloadConfig = {
   scene: SceneKind;
@@ -100,6 +111,56 @@ const CONFIG_WHITELIST: (keyof WorkloadConfig)[] = [
 function serialize(config: WorkloadConfig): Record<string, unknown> {
   return { ...config };
 }
+
+// ============= 配置驱动的表单字段定义 =============
+
+type FieldDef = {
+  key: keyof WorkloadConfig;
+  label: string;
+  kind: "number" | "select";
+  min?: number;
+  max?: number;
+  step?: number;
+  precision?: number;
+  /** select 类型的选项来源（options 中的 key） */
+  optionsKey?: "gpu_types" | "precisions" | "quants" | "bitwidths" | "parallel_levels";
+  /** 选项 label 格式化 */
+  optionFormat?: (v: string) => string;
+  /** 数字输入框单位后缀 */
+  unit?: string;
+};
+
+const SERVICE_FIELDS: FieldDef[] = [
+  { key: "requestRate", label: "请求速率", kind: "number", min: 0, unit: "req/s" },
+  { key: "batchSize", label: "Batch Size", kind: "number", min: 1, max: 256, precision: 0 },
+  { key: "concurrency", label: "并发数", kind: "number", min: 1, max: 256, precision: 0 },
+  { key: "qosLatency", label: "QoS 延迟", kind: "number", min: 0, unit: "ms" },
+];
+
+const CHIP_FIELDS: FieldDef[] = [
+  { key: "gpuType", label: "GPU 类型", kind: "select", optionsKey: "gpu_types" },
+  { key: "gpuMemory", label: "GPU 显存", kind: "number", min: 0, unit: "GB" },
+  { key: "gpuCount", label: "GPU 数量", kind: "number", min: 1, precision: 0 },
+  { key: "precision", label: "精度", kind: "select", optionsKey: "precisions" },
+  { key: "quant", label: "量化方式", kind: "select", optionsKey: "quants" },
+  {
+    key: "quantizationBitwidth",
+    label: "量化位宽",
+    kind: "select",
+    optionsKey: "bitwidths",
+    optionFormat: (b) => `${b}-bit`,
+  },
+  { key: "maxModelLen", label: "最大序列长度", kind: "number", min: 0, precision: 0 },
+  { key: "memFraction", label: "显存占用比例", kind: "number", min: 0, max: 1, step: 0.01 },
+];
+
+const RUNTIME_FIELDS: FieldDef[] = [
+  { key: "cpuCore", label: "CPU 核数", kind: "number", min: 1, precision: 0 },
+  { key: "cpuMemory", label: "CPU 内存", kind: "number", min: 1, unit: "GB" },
+  { key: "replicas", label: "副本数", kind: "number", min: 1, precision: 0 },
+  { key: "kvCacheRatio", label: "KV Cache 比例", kind: "number", min: 0, max: 1, step: 0.01 },
+  { key: "parallelLevel", label: "并行策略", kind: "select", optionsKey: "parallel_levels" },
+];
 
 function mockSimResult(kind: WorkloadKind, scene: SceneKind): SimResult {
   const baseScale: Record<
@@ -236,6 +297,17 @@ export default function WorkloadPage({
   const [logs, setLogs] = useState<Array<{ t: number; lvl: string; msg: string }>>([]);
   const [errMsg, setErrMsg] = useState<string | null>(null);
 
+  const [schemas, setSchemas] = useState<SchemasData>({ model: null, chip: null });
+  // 模型/芯片配置值集合（由 JSON Schema 驱动，随类型下拉切换）
+  const [modelValues, setModelValues] = useState<Record<string, unknown>>({});
+  const [chipValues, setChipValues] = useState<Record<string, unknown>>({});
+
+  // 自研表单校验错误（key: "config.<field>" / "model.<path>" / "chip.<path>"）
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
+  // 模型参数抽屉（选中模型卡片后展示）
+  const [modelDrawerOpen, setModelDrawerOpen] = useState(false);
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [serviceOpen, setServiceOpen] = useState(true);
   const [gpuOpen, setGpuOpen] = useState(true);
@@ -246,17 +318,21 @@ export default function WorkloadPage({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const simulationRef = useRef<() => Promise<void>>(async () => { });
 
-  // 获取表单选项和默认配置
+  // 获取表单选项、默认配置和配置 Schema
   useEffect(() => {
     (async () => {
       try {
-        const [opts, defs] = await Promise.all([
+        const [opts, defs, sch] = await Promise.all([
           api.getOptions(),
           api.getDefaults(),
+          api.getSchemas(),
         ]);
         setOptions(opts);
         const wd = defs.workload_defaults as Record<WorkloadKind, WorkloadConfig>;
         setWorkloadDefaults(wd);
+        setSchemas(sch);
+        setModelValues(initValuesFromSchema(sch.model));
+        setChipValues(initValuesFromSchema(sch.chip));
       } catch {
         /* keep null state */
       }
@@ -298,6 +374,36 @@ export default function WorkloadPage({
 
   const runSimulation = useCallback(async () => {
     if (runState === "running" || !config) return;
+    // 运行前按 JSON Schema 规则 + 字段定义校验全部参数
+    const errs: FieldErrors = {};
+    if (schemas.model) {
+      for (const [k, v] of Object.entries(validateSchemaFields(schemas.model, modelValues))) {
+        errs[`model.${k}`] = v;
+      }
+    }
+    if (schemas.chip) {
+      for (const [k, v] of Object.entries(validateSchemaFields(schemas.chip, chipValues))) {
+        errs[`chip.${k}`] = v;
+      }
+    }
+    for (const f of [...SERVICE_FIELDS, ...CHIP_FIELDS, ...RUNTIME_FIELDS]) {
+      const v = config[f.key] as unknown;
+      if (v === undefined || v === null || v === "") {
+        errs[`config.${f.key}`] = `${f.label}为必填项`;
+        continue;
+      }
+      if (f.kind === "number") {
+        const num = Number(v);
+        if (Number.isNaN(num)) errs[`config.${f.key}`] = `${f.label}必须为数字`;
+        else if (f.min !== undefined && num < f.min) errs[`config.${f.key}`] = `${f.label}不能小于 ${f.min}`;
+        else if (f.max !== undefined && num > f.max) errs[`config.${f.key}`] = `${f.label}不能大于 ${f.max}`;
+      }
+    }
+    setFieldErrors(errs);
+    if (Object.values(errs).some(Boolean)) {
+      setErrMsg("存在未通过校验的参数，请修正后再运行仿真");
+      return;
+    }
     const templateId =
       templates.find((t) => t.workload === kind)?.id ?? `tpl-${kind}`;
     setProgress(0);
@@ -310,7 +416,11 @@ export default function WorkloadPage({
       const result = await api.runSimulation(token, {
         kind,
         scene: config.scene,
-        config: serialize(config),
+        config: {
+          ...serialize(config),
+          model: { ...modelValues },
+          chip: { ...chipValues },
+        },
         templateId,
       });
 
@@ -344,7 +454,7 @@ export default function WorkloadPage({
     } finally {
       setProgress(100);
     }
-  }, [kind, config, token, templates, setCachedResult, runState]);
+  }, [kind, config, token, templates, setCachedResult, runState, modelValues, chipValues, schemas]);
 
   useEffect(() => {
     simulationRef.current = runSimulation;
@@ -416,6 +526,192 @@ export default function WorkloadPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config?.scene, config?.strategy, config?.vllm, config?.gpuType, config?.precision, kind]);
 
+  // ---------- Schema 驱动的模型/芯片配置 ----------
+
+  /** 清除单个字段错误 */
+  const clearFieldError = (key: string) => {
+    setFieldErrors((prev) =>
+      prev[key] ? { ...prev, [key]: undefined } : prev,
+    );
+  };
+
+  /** 清除某前缀下的全部字段错误（如类型切换后） */
+  const clearFieldErrorPrefix = (prefix: string) => {
+    setFieldErrors((prev) => {
+      const next: FieldErrors = {};
+      let changed = false;
+      for (const [k, v] of Object.entries(prev)) {
+        if (k.startsWith(prefix)) changed = true;
+        else if (v) next[k] = v;
+      }
+      return changed ? next : prev;
+    });
+  };
+
+  /** 定位 schema 中类型选择属性对应的 variant 值集合 */
+  const schemaVariantFor = (
+    schema: ConfigSchema | null,
+    typeValue: string,
+  ): { typeKey: string; variant: Record<string, unknown> } | null => {
+    const key = typeKeyOf(schema);
+    if (!schema || !key) return null;
+    const prop = schema.properties[key];
+    const idx = prop?.enum?.indexOf(typeValue) ?? -1;
+    if (idx < 0) return null;
+    const variant = prop?.["x-variants"]?.[idx];
+    return variant ? { typeKey: key, variant } : null;
+  };
+
+  /** 切换模型类型：用对应 variant 填充参数，并同步 precision / maxModelLen */
+  const applyModelVariant = (type: string) => {
+    const found = schemaVariantFor(schemas.model, type);
+    const typeKey = found?.typeKey ?? "model_type";
+    setModelValues((prev) => ({
+      ...prev,
+      [typeKey]: type,
+      ...(found?.variant ?? {}),
+    }));
+    const v = found?.variant ?? {};
+    clearFieldErrorPrefix("model.");
+    setConfig((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev };
+      if (typeof v.precision === "string") next.precision = v.precision as string;
+      if (typeof v.context_length === "number") next.maxModelLen = v.context_length as number;
+      return next;
+    });
+  };
+
+  /** 编辑模型参数（precision / context_length 与主表单字段联动） */
+  const setModelValue = (path: string, value: unknown) => {
+    setModelValues((prev) => ({ ...prev, [path]: value }));
+    clearFieldError(`model.${path}`);
+    if (path === "precision") {
+      setConfig((prev) => (prev ? { ...prev, precision: value as string } : prev));
+    } else if (path === "context_length") {
+      setConfig((prev) => (prev ? { ...prev, maxModelLen: Number(value) || 0 } : prev));
+    }
+  };
+
+  /** 选择模型卡片：应用 variant 并打开右侧参数抽屉 */
+  const handleModelSelect = (type: string) => {
+    applyModelVariant(type);
+    setModelDrawerOpen(true);
+  };
+
+  /** 切换芯片类型：用对应 variant 填充芯片参数，并与 GPU 类型字段联动 */
+  const applyChipVariant = (type: string) => {
+    const found = schemaVariantFor(schemas.chip, type);
+    const typeKey = found?.typeKey ?? "chip_type";
+    setChipValues((prev) => ({
+      ...prev,
+      [typeKey]: type,
+      ...(found?.variant ?? {}),
+    }));
+    clearFieldErrorPrefix("chip.");
+    setConfig((prev) => (prev ? { ...prev, gpuType: type } : prev));
+  };
+
+  /** 编辑主表单配置字段；GPU 类型变化时联动芯片参数 */
+  const setConfigField = (key: keyof WorkloadConfig, value: unknown) => {
+    setConfig((prev) => (prev ? { ...prev, [key]: value } : prev));
+    clearFieldError(`config.${key}`);
+    if (key === "gpuType" && typeof value === "string") {
+      const chipTypeKey = typeKeyOf(schemas.chip);
+      if (chipTypeKey && chipValues[chipTypeKey] !== value) {
+        applyChipVariant(value);
+      }
+    }
+  };
+
+  /** 渲染配置驱动的主表单字段行 */
+  const renderConfigField = (f: FieldDef) => {
+    if (!config) return null;
+    const value = config[f.key] as unknown;
+    const err = fieldErrors[`config.${f.key}`];
+    return (
+      <FieldRow key={f.key} label={f.label} required error={err}>
+        {f.kind === "select" ? (
+          <Select
+            value={value === undefined || value === null ? undefined : (value as string)}
+            options={(options?.[f.optionsKey!] ?? []).map(
+              (o: string) => ({ value: o, label: f.optionFormat ? f.optionFormat(o) : o }),
+            )}
+            onChange={(v) => setConfigField(f.key, v)}
+            style={{ width: "100%" }}
+          />
+        ) : (
+          <InputNumber
+            value={value === undefined || value === null ? undefined : (value as number)}
+            min={f.min}
+            max={f.max}
+            step={f.step}
+            precision={f.precision}
+            suffix={f.unit}
+            controls={false}
+            style={{ width: "100%" }}
+            onChange={(v) => setConfigField(f.key, v)}
+          />
+        )}
+      </FieldRow>
+    );
+  };
+
+  /** 渲染抽屉中的模型参数行（schema 驱动） */
+  const renderModelParam = (path: string) => {
+    if (!schemas.model) return null;
+    const prop = resolveProp(schemas.model, path);
+    if (!prop) return null;
+    const value = modelValues[path];
+    const err = fieldErrors[`model.${path}`];
+    const isNumber = prop.type === "number" || prop.type === "integer";
+    return (
+      <FieldRow key={path} label={prop.title ?? path} required error={err}>
+        {Array.isArray(prop.enum) && prop.enum.length > 0 ? (
+          <Select
+            value={value === undefined || value === null ? undefined : String(value)}
+            options={prop.enum.map((v, i) => ({
+              value: v,
+              label: prop["x-enum-label"]?.[i] ?? v,
+            }))}
+            onChange={(v) => setModelValue(path, v)}
+            style={{ width: "100%" }}
+          />
+        ) : isNumber ? (
+          <InputNumber
+            value={value === undefined || value === null ? undefined : (value as number)}
+            min={prop.minimum}
+            max={prop.maximum}
+            step={prop.type === "integer" ? 1 : 0.01}
+            precision={prop.type === "integer" ? 0 : undefined}
+            suffix={prop.unit}
+            controls={false}
+            style={{ width: "100%" }}
+            onChange={(v) => setModelValue(path, v)}
+          />
+        ) : (
+          <Input
+            value={value === undefined || value === null ? "" : String(value)}
+            onChange={(e) => setModelValue(path, e.target.value)}
+          />
+        )}
+      </FieldRow>
+    );
+  };
+
+  // 模板/Agent 补丁等外部修改 config 时，同步回模型参数展示
+  useEffect(() => {
+    if (!config) return;
+    queueMicrotask(() => {
+      setModelValues((prev) =>
+        prev.precision === config.precision && prev.context_length === config.maxModelLen
+          ? prev
+          : { ...prev, precision: config.precision, context_length: config.maxModelLen },
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config?.precision, config?.maxModelLen]);
+
   // 其他：dropdown 外部点击关闭（非指定 6 个 useEffect）
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -436,11 +732,6 @@ export default function WorkloadPage({
     () => (config ? getCachedResult(kind, config.scene) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [kind, config?.scene, getCachedResult],
-  );
-
-  const availableTemplates = useMemo(
-    () => templates.filter((t) => t.workload === kind),
-    [templates, kind],
   );
 
   const applyTemplateConfig = (tpl: SimTemplate) => {
@@ -473,33 +764,20 @@ export default function WorkloadPage({
       const mapped = mapKey(k);
       if (mapped) (patch as Record<string, unknown>)[mapped] = v;
     }
+    // 模板指定了模型时，同步模型类型下拉及其参数
+    if (typeof tpl.model?.model_name === "string") {
+      applyModelVariant(tpl.model.model_name);
+    }
     setConfig((prev) => (prev ? applyDefaults(kind, { ...prev, ...patch }) : prev));
     setDropdownOpen(false);
   };
 
-  const updateNumber = (key: keyof WorkloadConfig, val: string) => {
-    const num = Number(val);
-    if (!Number.isNaN(num)) {
-      setConfig((prev) => (prev ? { ...prev, [key]: num } : prev));
-    }
-  };
-
-  const updateString = (key: keyof WorkloadConfig, val: string) => {
-    setConfig((prev) => (prev ? { ...prev, [key]: val } : prev));
-  };
-
-  const updateBool = (key: keyof WorkloadConfig, val: boolean) => {
-    setConfig((prev) => (prev ? { ...prev, [key]: val } : prev));
-  };
-
-  const switchScene = (next: SceneKind) => {
-    setConfig((prev) => (prev ? applyDefaults(kind, { ...prev, scene: next }) : prev));
-  };
-
   const lastLog = logs[logs.length - 1];
-  const fid = (s: string) => `wp-${kind}-${s}`;
 
   if (!config) return <div className={styles.page}>加载中...</div>;
+
+  const modelTypeKey = typeKeyOf(schemas.model);
+  const chipTypeKey = typeKeyOf(schemas.chip);
 
   return (
     <div className={styles.page}>
@@ -523,70 +801,9 @@ export default function WorkloadPage({
       <div className={styles.mainGrid}>
         <div className={`${styles.card} ${styles.configCard}`}>
           <div className={styles.scrollBody}>
-            <div className={styles.globalControls}>
-              <div className={styles.formRow}>
-                <label htmlFor={fid("scene")} className={styles.label}>
-                  <CircleDollarSign size={14} />
-                  仿真场景
-                </label>
-                <div className={styles.segmented} id={fid("scene")}>
-                  {(["pd_separate", "pd_fused"] as SceneKind[]).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      className={`${styles.segmentedItem} ${config.scene === s ? styles.active : ""
-                        }`}
-                      onClick={() => switchScene(s)}
-                      aria-pressed={config.scene === s}
-                    >
-                      {SCENE_LABEL[s]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className={styles.formRow}>
-                <label htmlFor={fid("tpl")} className={styles.label}>
-                  <FileJson size={14} />
-                  负载模板
-                </label>
-                <div style={{ position: "relative", flex: 1 }}>
-                  <button
-                    id={fid("tpl")}
-                    type="button"
-                    className={styles.select}
-                    onClick={() => setDropdownOpen((o) => !o)}
-                  >
-                    <span>
-                      {availableTemplates[0]?.name ?? "自定义配置"}
-                    </span>
-                    <ChevronDown size={14} />
-                  </button>
-                </div>
-              </div>
-
-              <div className={styles.formRow}>
-                <label htmlFor={fid("strategy")} className={styles.label}>
-                  <Settings2 size={14} />
-                  调度策略
-                </label>
-                <select
-                  id={fid("strategy")}
-                  className={styles.select}
-                  value={config.strategy}
-                  onChange={(e) => updateString("strategy", e.target.value)}
-                >
-                  {(options?.strategies ?? []).map((s: string) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
 
             <details
-              className={styles.details}
+              className={`${styles.details} ${styles.fixedDetails}`}
               open={serviceOpen}
               onToggle={(e) =>
                 setServiceOpen((e.currentTarget as HTMLDetailsElement).open)
@@ -596,7 +813,7 @@ export default function WorkloadPage({
                 <span className={styles.summaryIcon}>
                   <Gauge size={16} />
                 </span>
-                <span className={styles.summaryTitle}>模型配置</span>
+                <span className={styles.summaryTitle}>模型配置选择</span>
                 {serviceOpen ? (
                   <ChevronDown size={16} className={styles.summaryArrow} />
                 ) : (
@@ -604,85 +821,19 @@ export default function WorkloadPage({
                 )}
               </summary>
               <div className={styles.detailsBody}>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("requestRate")} className={styles.label}>请求速率 (req/s)</label>
-                  <input
-                    id={fid("requestRate")}
-                    type="number"
-                    className={styles.input}
-                    value={config.requestRate}
-                    onChange={(e) => updateNumber("requestRate", e.target.value)}
+                {schemas.model && (
+                  <SchemaCardGrid
+                    schema={schemas.model}
+                    value={modelTypeKey ? String(modelValues[modelTypeKey] ?? "") : undefined}
+                    onSelect={handleModelSelect}
+                    columns={1}
                   />
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("batchSize")} className={styles.label}>Batch Size</label>
-                  <div className={styles.inputGroup}>
-                    <input
-                      id={fid("batchSize")}
-                      type="range"
-                      className={styles.slider}
-                      min={1}
-                      max={256}
-                      value={config.batchSize}
-                      onChange={(e) =>
-                        updateNumber("batchSize", e.target.value)
-                      }
-                    />
-                    <input
-                      type="number"
-                      className={styles.numberInput}
-                      min={1}
-                      max={256}
-                      value={config.batchSize}
-                      onChange={(e) =>
-                        updateNumber("batchSize", e.target.value)
-                      }
-                      aria-label="batchSize number"
-                    />
-                  </div>
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("concurrency")} className={styles.label}>并发数</label>
-                  <div className={styles.inputGroup}>
-                    <input
-                      id={fid("concurrency")}
-                      type="range"
-                      className={styles.slider}
-                      min={1}
-                      max={256}
-                      value={config.concurrency}
-                      onChange={(e) =>
-                        updateNumber("concurrency", e.target.value)
-                      }
-                    />
-                    <input
-                      type="number"
-                      className={styles.numberInput}
-                      min={1}
-                      max={256}
-                      value={config.concurrency}
-                      onChange={(e) =>
-                        updateNumber("concurrency", e.target.value)
-                      }
-                      aria-label="concurrency number"
-                    />
-                  </div>
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("qosLatency")} className={styles.label}>QoS 延迟 (ms)</label>
-                  <input
-                    id={fid("qosLatency")}
-                    type="number"
-                    className={styles.input}
-                    value={config.qosLatency}
-                    onChange={(e) => updateNumber("qosLatency", e.target.value)}
-                  />
-                </div>
+                )}
               </div>
             </details>
 
             <details
-              className={styles.details}
+              className={`${styles.details} ${styles.fixedDetails}`}
               open={gpuOpen}
               onToggle={(e) =>
                 setGpuOpen((e.currentTarget as HTMLDetailsElement).open)
@@ -692,7 +843,7 @@ export default function WorkloadPage({
                 <span className={`${styles.summaryIcon} ${styles.green}`}>
                   <Server size={16} />
                 </span>
-                <span className={styles.summaryTitle}>硬件配置</span>
+                <span className={styles.summaryTitle}>芯片配置选择</span>
                 {gpuOpen ? (
                   <ChevronDown size={16} className={styles.summaryArrow} />
                 ) : (
@@ -700,289 +851,16 @@ export default function WorkloadPage({
                 )}
               </summary>
               <div className={styles.detailsBody}>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("gpuType")} className={styles.label}>GPU 类型</label>
-                  <select
-                    id={fid("gpuType")}
-                    className={styles.select}
-                    value={config.gpuType}
-                    onChange={(e) => updateString("gpuType", e.target.value)}
-                  >
-                    {(options?.gpu_types ?? []).map((g: string) => (
-                      <option key={g} value={g}>
-                        {g}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("gpuMemory")} className={styles.label}>GPU 显存 (GB)</label>
-                  <input
-                    id={fid("gpuMemory")}
-                    type="number"
-                    className={styles.input}
-                    value={config.gpuMemory}
-                    onChange={(e) => updateNumber("gpuMemory", e.target.value)}
+                {schemas.chip && (
+                  <SchemaCardGrid
+                    schema={schemas.chip}
+                    value={chipTypeKey ? String(chipValues[chipTypeKey] ?? "") : undefined}
+                    onSelect={applyChipVariant}
                   />
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("gpuCount")} className={styles.label}>GPU 数量</label>
-                  <input
-                    id={fid("gpuCount")}
-                    type="number"
-                    className={styles.input}
-                    value={config.gpuCount}
-                    onChange={(e) => updateNumber("gpuCount", e.target.value)}
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("precision")} className={styles.label}>精度</label>
-                  <select
-                    id={fid("precision")}
-                    className={styles.select}
-                    value={config.precision}
-                    onChange={(e) => updateString("precision", e.target.value)}
-                  >
-                    {(options?.precisions ?? []).map((p: string) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("quant")} className={styles.label}>量化方式</label>
-                  <select
-                    id={fid("quant")}
-                    className={styles.select}
-                    value={config.quant}
-                    onChange={(e) => updateString("quant", e.target.value)}
-                  >
-                    {(options?.quants ?? []).map((q: string) => (
-                      <option key={q} value={q}>
-                        {q}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("bitwidth")} className={styles.label}>量化位宽</label>
-                  <select
-                    id={fid("bitwidth")}
-                    className={styles.select}
-                    value={config.quantizationBitwidth}
-                    onChange={(e) =>
-                      updateString("quantizationBitwidth", e.target.value)
-                    }
-                  >
-                    {(options?.bitwidths ?? []).map((b: string) => (
-                      <option key={b} value={b}>
-                        {b}-bit
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("maxModelLen")} className={styles.label}>最大序列长度</label>
-                  <input
-                    id={fid("maxModelLen")}
-                    type="number"
-                    className={styles.input}
-                    value={config.maxModelLen}
-                    onChange={(e) => updateNumber("maxModelLen", e.target.value)}
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("memFraction")} className={styles.label}>显存占用比例</label>
-                  <div className={styles.inputGroup}>
-                    <input
-                      id={fid("memFraction")}
-                      type="range"
-                      className={styles.slider}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={config.memFraction}
-                      onChange={(e) =>
-                        updateNumber("memFraction", e.target.value)
-                      }
-                    />
-                    <input
-                      type="number"
-                      className={styles.numberInput}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={config.memFraction}
-                      onChange={(e) =>
-                        updateNumber("memFraction", e.target.value)
-                      }
-                      aria-label="memFraction number"
-                    />
-                  </div>
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("vllm")} className={styles.label}>
-                    vLLM 加速
-                    {config.vllm ? (
-                      <ToggleRight
-                        size={18}
-                        className={styles.toggleOn}
-                        onClick={() => updateBool("vllm", false)}
-                        role="presentation"
-                      />
-                    ) : (
-                      <ToggleLeft
-                        size={18}
-                        className={styles.toggleOff}
-                        onClick={() => updateBool("vllm", true)}
-                        role="presentation"
-                      />
-                    )}
-                  </label>
-                  <input
-                    id={fid("vllm")}
-                    type="checkbox"
-                    checked={config.vllm}
-                    onChange={(e) => updateBool("vllm", e.target.checked)}
-                    className={styles.hiddenCheckbox}
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("paged")} className={styles.label}>
-                    Paged Attention
-                    {config.paged ? (
-                      <ToggleRight
-                        size={18}
-                        className={styles.toggleOn}
-                        onClick={() => updateBool("paged", false)}
-                        role="presentation"
-                      />
-                    ) : (
-                      <ToggleLeft
-                        size={18}
-                        className={styles.toggleOff}
-                        onClick={() => updateBool("paged", true)}
-                        role="presentation"
-                      />
-                    )}
-                  </label>
-                  <input
-                    id={fid("paged")}
-                    type="checkbox"
-                    checked={config.paged}
-                    onChange={(e) => updateBool("paged", e.target.checked)}
-                    className={styles.hiddenCheckbox}
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("chunkPrefill")} className={styles.label}>
-                    Chunked Prefill
-                    {config.chunkPrefill ? (
-                      <ToggleRight
-                        size={18}
-                        className={styles.toggleOn}
-                        onClick={() => updateBool("chunkPrefill", false)}
-                        role="presentation"
-                      />
-                    ) : (
-                      <ToggleLeft
-                        size={18}
-                        className={styles.toggleOff}
-                        onClick={() => updateBool("chunkPrefill", true)}
-                        role="presentation"
-                      />
-                    )}
-                  </label>
-                  <input
-                    id={fid("chunkPrefill")}
-                    type="checkbox"
-                    checked={config.chunkPrefill}
-                    onChange={(e) => updateBool("chunkPrefill", e.target.checked)}
-                    className={styles.hiddenCheckbox}
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("quantW8A8")} className={styles.label}>
-                    W8A8 量化
-                    {config.quantW8A8 ? (
-                      <ToggleRight
-                        size={18}
-                        className={styles.toggleOn}
-                        onClick={() => updateBool("quantW8A8", false)}
-                        role="presentation"
-                      />
-                    ) : (
-                      <ToggleLeft
-                        size={18}
-                        className={styles.toggleOff}
-                        onClick={() => updateBool("quantW8A8", true)}
-                        role="presentation"
-                      />
-                    )}
-                  </label>
-                  <input
-                    id={fid("quantW8A8")}
-                    type="checkbox"
-                    checked={config.quantW8A8}
-                    onChange={(e) => updateBool("quantW8A8", e.target.checked)}
-                    className={styles.hiddenCheckbox}
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("quantW4A16")} className={styles.label}>
-                    W4A16 量化
-                    {config.quantW4A16 ? (
-                      <ToggleRight
-                        size={18}
-                        className={styles.toggleOn}
-                        onClick={() => updateBool("quantW4A16", false)}
-                        role="presentation"
-                      />
-                    ) : (
-                      <ToggleLeft
-                        size={18}
-                        className={styles.toggleOff}
-                        onClick={() => updateBool("quantW4A16", true)}
-                        role="presentation"
-                      />
-                    )}
-                  </label>
-                  <input
-                    id={fid("quantW4A16")}
-                    type="checkbox"
-                    checked={config.quantW4A16}
-                    onChange={(e) => updateBool("quantW4A16", e.target.checked)}
-                    className={styles.hiddenCheckbox}
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("useLora")} className={styles.label}>
-                    启用 LoRA
-                    {config.useLora ? (
-                      <ToggleRight
-                        size={18}
-                        className={styles.toggleOn}
-                        onClick={() => updateBool("useLora", false)}
-                        role="presentation"
-                      />
-                    ) : (
-                      <ToggleLeft
-                        size={18}
-                        className={styles.toggleOff}
-                        onClick={() => updateBool("useLora", true)}
-                        role="presentation"
-                      />
-                    )}
-                  </label>
-                  <input
-                    id={fid("useLora")}
-                    type="checkbox"
-                    checked={config.useLora}
-                    onChange={(e) => updateBool("useLora", e.target.checked)}
-                    className={styles.hiddenCheckbox}
-                  />
-                </div>
+                )}
+                <FieldGrid columns={FORM_COLUMNS}>
+                  {CHIP_FIELDS.map(renderConfigField)}
+                </FieldGrid>
               </div>
             </details>
 
@@ -1005,82 +883,10 @@ export default function WorkloadPage({
                 )}
               </summary>
               <div className={styles.detailsBody}>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("cpuCore")} className={styles.label}>CPU 核数</label>
-                  <input
-                    id={fid("cpuCore")}
-                    type="number"
-                    className={styles.input}
-                    value={config.cpuCore}
-                    onChange={(e) => updateNumber("cpuCore", e.target.value)}
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("cpuMemory")} className={styles.label}>CPU 内存 (GB)</label>
-                  <input
-                    id={fid("cpuMemory")}
-                    type="number"
-                    className={styles.input}
-                    value={config.cpuMemory}
-                    onChange={(e) => updateNumber("cpuMemory", e.target.value)}
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("replicas")} className={styles.label}>副本数</label>
-                  <input
-                    id={fid("replicas")}
-                    type="number"
-                    className={styles.input}
-                    value={config.replicas}
-                    onChange={(e) => updateNumber("replicas", e.target.value)}
-                  />
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("kvCacheRatio")} className={styles.label}>KV Cache 比例</label>
-                  <div className={styles.inputGroup}>
-                    <input
-                      id={fid("kvCacheRatio")}
-                      type="range"
-                      className={styles.slider}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={config.kvCacheRatio}
-                      onChange={(e) =>
-                        updateNumber("kvCacheRatio", e.target.value)
-                      }
-                    />
-                    <input
-                      type="number"
-                      className={styles.numberInput}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={config.kvCacheRatio}
-                      onChange={(e) =>
-                        updateNumber("kvCacheRatio", e.target.value)
-                      }
-                      aria-label="kvCacheRatio number"
-                    />
-                  </div>
-                </div>
-                <div className={styles.formRow}>
-                  <label htmlFor={fid("parallelLevel")} className={styles.label}>并行策略</label>
-                  <select
-                    id={fid("parallelLevel")}
-                    className={styles.select}
-                    value={config.parallelLevel}
-                    onChange={(e) =>
-                      updateString("parallelLevel", e.target.value)
-                    }
-                  >
-                    {(options?.parallel_levels ?? []).map((p: string) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <FieldGrid columns={FORM_COLUMNS}>
+                  {SERVICE_FIELDS.map(renderConfigField)}
+                  {RUNTIME_FIELDS.map(renderConfigField)}
+                </FieldGrid>
               </div>
             </details>
 
@@ -1104,41 +910,6 @@ export default function WorkloadPage({
           </div>
 
           <div className={styles.configFooter}>
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnSecondary}`}
-              onClick={() => {
-                const key = `${kind}-${Date.now()}`;
-                const tpl: SimTemplate = {
-                  id: key,
-                  name: `本地保存 · ${new Date().toLocaleTimeString()}`,
-                  workload: kind,
-                  scene: config.scene,
-                  model: {},
-                  system: {},
-                  runtime: {},
-                };
-                try {
-                  localStorage.setItem(`tpl-${key}`, JSON.stringify(tpl));
-                } catch {
-                  /* ignore */
-                }
-              }}
-            >
-              <Save size={14} />
-              <span>保存模板</span>
-            </button>
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnSecondary}`}
-              onClick={() => {
-                if (workloadDefaults)
-                  setConfig(applyDefaults(kind, workloadDefaults[kind]));
-              }}
-            >
-              <RefreshCw size={14} />
-              <span>重置</span>
-            </button>
             <button
               type="button"
               className={`${styles.btn} ${styles.btnPrimary}`}
@@ -1175,6 +946,23 @@ export default function WorkloadPage({
           />
         </div>
       </div>
-    </div>
+
+      {/* 模型参数抽屉：选中模型卡片后从右侧展示对应参数表单 */}
+      <Drawer
+        open={modelDrawerOpen}
+        onClose={() => setModelDrawerOpen(false)}
+        title={
+          modelTypeKey && modelValues[modelTypeKey]
+            ? `${modelValues[modelTypeKey]} 参数配置`
+            : "模型参数配置"
+        }
+        placement="right"
+        width={420}
+      >
+        <FieldGrid columns={1}>
+          {(schemas.model?.["x-main-paths"] ?? []).map(renderModelParam)}
+        </FieldGrid>
+      </Drawer>
+    </div >
   );
 }

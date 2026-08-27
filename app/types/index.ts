@@ -3,7 +3,9 @@ export type WorkloadKind = "inference" | "training";
 export type SceneKind = "pd_separate" | "pd_fused";
 export type PageId =
   | "dashboard"
-  | `simulation/workload/${WorkloadKind}`
+  | "ngc-inference-sim"
+  | "ngc-comparative-analyze"
+  | "ngc-compute-memory-analyze";
 
 export type User = {
   username: string;

@@ -5,11 +5,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import random
 import secrets
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -67,6 +69,7 @@ class SimulationConfig(BaseModel):
     model: dict[str, Any] = Field(default_factory=dict)
     system: dict[str, Any] = Field(default_factory=dict)
     runtime: dict[str, Any] = Field(default_factory=dict)
+    chip: dict[str, Any] = Field(default_factory=dict)
 
 
 class AgentMessage(BaseModel):
@@ -433,7 +436,6 @@ DASHBOARD_STATS: list[dict[str, Any]] = [
 ]
 
 DASHBOARD_QUICK_ENTRIES: list[dict[str, Any]] = [
-    {"title": "负载建模仿真", "desc": "LLM 推理负载，支持 PD 分离与融合部署对比。", "icon": "Zap", "bg": "rgba(34, 211, 238, 0.12)", "fg": "var(--brand-400)", "accent": "linear-gradient(90deg, #22d3ee, #06b6d4)", "goto": "simulation/workload/inference"},
     {"title": "NGC 推理仿真", "desc": "大模型训练负载，分析 MFU 与通信瓶颈。", "icon": "Bot", "bg": "rgba(52, 211, 153, 0.12)", "fg": "var(--success)", "accent": "linear-gradient(90deg, #34d399, #10b981)", "goto": "ngc-inference-sim"},
     {"title": "NGC 对比分析", "desc": "HPC、通用批处理与科学计算负载。", "icon": "Code2", "bg": "rgba(251, 191, 36, 0.12)", "fg": "var(--accent-400)", "accent": "linear-gradient(90deg, #fbbf24, #f59e0b)", "goto": "ngc-comparative-analyze"},
     {"title": "NGC 计算-内存分析", "desc": "芯片、服务器、网络与集群拓扑的系统级评估。", "icon": "Network", "bg": "rgba(167, 139, 250, 0.12)", "fg": "var(--purple)", "accent": "linear-gradient(90deg, #a78bfa, #8b5cf6)", "goto": "ngc-compute-memory-analyze"},
@@ -482,6 +484,26 @@ def get_defaults(_: dict[str, str] = Depends(require_auth)):
         "workload_defaults": WORKLOAD_DEFAULTS_BY_KIND,
         "default_by_workload": DEFAULT_BY_WORKLOAD,
     }
+
+
+SCHEMA_DIR = Path(__file__).resolve().parent / "schema-data"
+SCHEMA_FILES: dict[str, str] = {
+    "model": "model.json",
+    "chip": "chip.json",
+}
+
+
+@app.get("/api/schemas")
+def get_schemas(_: dict[str, str] = Depends(require_auth)):
+    """返回模型/芯片等配置区块的 JSON Schema（含 x-variants、x-main-paths 扩展）。"""
+    data: dict[str, Any] = {}
+    for key, fname in SCHEMA_FILES.items():
+        try:
+            raw = json.loads((SCHEMA_DIR / fname).read_text(encoding="utf-8"))
+            data[key] = raw.get("data", raw)
+        except Exception:
+            data[key] = None
+    return {"code": "success", "message": "operation successful", "data": data}
 
 
 @app.get("/api/dashboard")

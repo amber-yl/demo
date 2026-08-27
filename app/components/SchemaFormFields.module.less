@@ -1,0 +1,181 @@
+/* 自研表单行：label 一列 + 输入框一列，保证所有字段对齐统一 */
+
+.fieldRow {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+
+.fieldLabel {
+  flex: 0 0 92px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  line-height: 32px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.fieldRequired::before {
+  content: "*";
+  color: #ff4d4f;
+  margin-right: 3px;
+}
+
+.fieldControl {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fieldError {
+  font-size: 11px;
+  color: #ff4d4f;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+/* ============= 类型卡片选择 ============= */
+
+.cardWrap {
+  margin-bottom: 2px;
+}
+
+.cardTabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.cardTab {
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cardTab:hover {
+  border-color: var(--brand-400);
+  color: var(--brand-400);
+}
+
+.cardTabActive,
+.cardTabActive:hover {
+  background: var(--brand-600);
+  border-color: var(--brand-600);
+  color: #fff;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.modelCard {
+  position: relative;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  cursor: pointer;
+  min-width: 0;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.modelCard:hover {
+  border-color: var(--brand-400);
+}
+
+.modelCardActive {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 1px var(--brand-500);
+  background: var(--bg-elevated);
+}
+
+.cardCorner {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.recBadge {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-500);
+}
+
+.selBadge {
+  background: var(--brand-600);
+  color: #fff;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-right: 48px;
+}
+
+.cardName {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.cardTags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.cardTag {
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.tag0 {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+}
+
+.tag1 {
+  background: rgba(34, 211, 238, 0.15);
+  color: var(--brand-500);
+}
+
+.tag2 {
+  background: rgba(168, 85, 247, 0.18);
+  color: #c084fc;
+}
+
+.cardDesc {
+  margin-top: 4px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.cardSummary {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
