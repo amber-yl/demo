@@ -23,6 +23,8 @@
   overflow: auto;
   height: calc(100vh - 64px);
   background: transparent;
+  // 预留滚动条空间，避免子内容展开后滚动条出现/消失挤压宽度造成抖动
+  scrollbar-gutter: stable;
 }
 
 .appShell.dashboardMode .contentArea {

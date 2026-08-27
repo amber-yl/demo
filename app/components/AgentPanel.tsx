@@ -334,7 +334,7 @@ export default function AgentPanel({
               <textarea
                 className={styles.textarea}
                 value={input}
-                placeholder="询问当前配置、结果或优化建议…（Enter 发送，Ctrl+Enter 换行）"
+                placeholder="询问当前配置、结果或优化建议…"
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.ctrlKey && !e.metaKey) {

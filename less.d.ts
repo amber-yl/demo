@@ -12,15 +12,13 @@ declare module "next-with-less" {
   type NextConfig = import("next").NextConfig;
   interface LessLoaderOptions {
     lessOptions?: Record<string, unknown>;
+    additionalData?: string | ((content: string) => string);
     [key: string]: unknown;
   }
-  interface WithLessOptions {
+  interface WithLessConfig extends NextConfig {
     lessLoaderOptions?: LessLoaderOptions;
-    [key: string]: unknown;
   }
-  function createWithLess(
-    options?: WithLessOptions,
-  ): (config?: NextConfig) => NextConfig;
-  export = createWithLess;
-  export default createWithLess;
+  function withLess(config: WithLessConfig): NextConfig;
+  export = withLess;
+  export default withLess;
 }

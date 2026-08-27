@@ -49,13 +49,9 @@ function ruleUseLoaders(use: RuleSetRule["use"] | undefined): RuleUseEntry[] {
 
 /**
  * 基于 Next.js 内置的 CSS Modules / 全局 CSS 规则克隆出对应的 Less 规则。
- * （不能依赖 .scss 规则——如果项目没有安装 sass 包，Next 根本不会注入 scss 规则。）
- *
- * 思路：
- *   1. 找到 Next 内置处理 `.module.css` 的 rule → 克隆为 `.module.less` 规则（Less + CSS Modules）
- *   2. 找到 Next 内置处理纯 `.css` 的 rule → 克隆为纯 `.less` 规则（全局 Less）
- *   3. 复制 use 链（Next 官方的 mini-css-extract / css-loader / postcss /
- *      CSS Modules 配置、issuer 等全部复用），然后把 less-loader 插在最前面。
+ * next-with-less v3.0.1 仅适配 Next 13.3，在 Next 15.3 下无法正确克隆
+ * 带 issuerLayer 的 app/pages 分层规则，会导致 .module.less 命中兜底 error-loader
+ * 报 "CSS Modules cannot be imported from within node_modules"，故沿用此实现。
  */
 function injectLessSupport(config: Configuration): void {
   const rules = config.module?.rules ?? [];
@@ -72,14 +68,11 @@ function injectLessSupport(config: Configuration): void {
     return t instanceof RegExp ? t : null;
   };
 
-  // 1. 先找 `.module.css` 规则（source 里同时包含 module + css）
   const moduleCssRule: RuleSetRule | undefined = original.find((r) => {
     const t = getTest(r);
     return !!t && /module/.test(t.source) && /css/.test(t.source);
   });
 
-  // 2. 再找全局 `.css` 规则（包含 css 但不含 module，且为常规 .css test）
-  //    注意：必须找 module 规则之后出现的那条，避免取到 oneOf 前面残留的特殊 CSS 规则
   const moduleIdx = moduleCssRule ? original.indexOf(moduleCssRule) : -1;
   const globalCssRule: RuleSetRule | undefined = original.find((r, i) => {
     if (moduleIdx >= 0 && i <= moduleIdx) return false;
@@ -87,7 +80,6 @@ function injectLessSupport(config: Configuration): void {
     if (!t) return false;
     if (!/css/.test(t.source)) return false;
     if (/module/.test(t.source)) return false;
-    // 排除特殊路径匹配（next-image-loader 之类也会用类似 css 的占位）
     return /\\\.css|\/\.css|\.css\$/.test(t.source);
   });
 
@@ -98,8 +90,6 @@ function injectLessSupport(config: Configuration): void {
     ? cloneCssRuleForLess(globalCssRule, false)
     : null;
 
-  // 插入顺序：先 .module.less（更具体），再 .less（全局）
-  // 位置：插在它对应的 CSS 规则之前，保证命中时先取 Less 版本
   const insertAtOriginal = (
     baseRule: RuleSetRule | undefined,
     newRule: RuleSetRule | null,
@@ -130,12 +120,8 @@ function cloneCssRuleForLess(
   baseRule: RuleSetRule,
   isModule: boolean,
 ): RuleSetRule {
-  // issuer / include / exclude / parser / resolve 等内部使用 Set/Map/RegExp，
-  // 必须按引用保留，绝不能 JSON 序列化。只替换 test 和 use。
   const useList = ruleUseLoaders(baseRule.use);
 
-  // 若源规则是 .module.css，less-loader 插在最末尾（最先执行）
-  // 普通 less 文件同理。这里不需要额外过滤，因为 css-loader 直接兼容 less-loader 输出。
   useList.push({
     loader: require.resolve("less-loader"),
     options: {
@@ -154,9 +140,9 @@ function cloneCssRuleForLess(
 }
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["lucide-react"],
   devIndicators: false,
   experimental: {
+    // 按需引入 lucide-react 图标，避免全量打包拖慢首屏编译
     optimizePackageImports: ["lucide-react"],
   },
   webpack: (config) => {

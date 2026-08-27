@@ -214,6 +214,8 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  // 预留滚动条空间，避免展开后滚动条出现/消失挤压内容宽度造成抖动
+  scrollbar-gutter: stable;
 }
 
 .globalControls {
@@ -483,10 +485,11 @@
   font-size: 13.5px;
   font-weight: 600;
   color: var(--text-primary);
+  // 始终占位的透明下边框，展开时只变色，避免 border 出现/消失导致 summary 高度跳动
+  border-bottom: 1px solid transparent;
   transition:
     background 0.2s ease,
-    transform 0.18s ease,
-    padding 0.2s ease;
+    border-color 0.2s ease;
   user-select: none;
   position: relative;
 }
@@ -497,13 +500,11 @@
 
 .summary:hover {
   background: var(--bg-card-hover);
-  transform: translateY(-0.5px);
 }
 
 .details[open] > .summary {
   background: linear-gradient(180deg, var(--bg-card-hover) 0%, transparent 100%);
-  padding-bottom: 13px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom-color: var(--border-subtle);
   position: relative;
 }
 
@@ -605,11 +606,9 @@
 @keyframes body-in {
   from {
     opacity: 0;
-    transform: translateY(-6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -634,11 +633,9 @@
 @keyframes row-in {
   from {
     opacity: 0;
-    transform: translateX(-6px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
   }
 }
 

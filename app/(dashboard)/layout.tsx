@@ -2,12 +2,21 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import dynamic from "next/dynamic";
+import type { ComponentProps } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import AppTopBar from "@/components/AppTopBar";
-import AgentPanel from "@/components/AgentPanel";
+import type AgentPanelDefault from "@/components/AgentPanel";
 import { useApp } from "@/context";
 import type { WorkloadKind } from "@/types";
 import styles from "@/layouts/AppShell.module.less";
+
+// AgentPanel 含 antd Button + 多个 lucide 图标 + fetch 逻辑，体积较大。
+// 首屏（尤其 Dashboard 全屏模式）并不需要它，按需加载可显著减小首屏 bundle。
+const AgentPanel = dynamic<ComponentProps<typeof AgentPanelDefault>>(
+  () => import("@/components/AgentPanel"),
+  { ssr: false, loading: () => null },
+);
 
 export default function DashboardLayout({
   children,

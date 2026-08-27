@@ -94,7 +94,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     typeof window !== "undefined" ? window.innerWidth <= 1024 : false,
   );
   const [patchTick, setPatchTick] = useState(0);
-  const [agentOpen, setAgentOpen] = useState(true);
+  const [agentOpen, setAgentOpen] = useState(false);
   const [agentContextState, setAgentContextState] = useState<AgentContext>({
     workload: "inference",
     scene: "pd_separate",
