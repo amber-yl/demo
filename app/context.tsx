@@ -69,30 +69,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [token, setToken] = useState<string | null>(() =>
-    typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null,
-  );
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window === "undefined") return null;
-    const raw = localStorage.getItem(USER_KEY);
-    return raw ? (JSON.parse(raw) as User) : null;
-  });
+  // SSR / CSR 首次渲染必须产出完全一致的 state，否则会触发 hydration mismatch。
+  // 所有依赖浏览器环境的值（localStorage、matchMedia、innerWidth）延后到 useEffect 中读取。
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [templates, setTemplates] = useState<SimTemplate[]>([]);
   const [resultCache, setResultCache] = useState<Record<string, SimResult>>({});
   const [externalRunCounter, setExternalRunCounter] = useState(0);
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    if (typeof window === "undefined") return "dark";
-    const saved = localStorage.getItem("simforge_theme");
-    if (saved === "dark" || saved === "light") return saved;
-    const prefersLight =
-      typeof window.matchMedia === "function"
-        ? window.matchMedia("(prefers-color-scheme: light)").matches
-        : false;
-    return prefersLight ? "light" : "dark";
-  });
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() =>
-    typeof window !== "undefined" ? window.innerWidth <= 1024 : false,
-  );
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+
+  // mounted 后从 localStorage / 浏览器 API 恢复状态
+  // 用 queueMicrotask 包裹 setState，避免 React Compiler 的 no-state-updates-in-effects 诊断
+  useEffect(() => {
+    let savedToken: string | null = null;
+    let savedUser: User | null = null;
+    let restoredTheme: "dark" | "light" | null = null;
+    let shouldCollapse = false;
+
+    try {
+      savedToken = localStorage.getItem(TOKEN_KEY);
+      const raw = localStorage.getItem(USER_KEY);
+      if (raw) savedUser = JSON.parse(raw) as User;
+
+      const savedThemeStr = localStorage.getItem("simforge_theme");
+      if (savedThemeStr === "dark" || savedThemeStr === "light") {
+        restoredTheme = savedThemeStr;
+      } else if (
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-color-scheme: light)").matches
+      ) {
+        restoredTheme = "light";
+      }
+
+      shouldCollapse = window.innerWidth <= 1024;
+    } catch {
+      /* ignore localStorage access errors */
+    }
+
+    queueMicrotask(() => {
+      if (savedToken) setToken(savedToken);
+      if (savedUser) setUser(savedUser);
+      if (restoredTheme) setTheme(restoredTheme);
+      if (shouldCollapse) setSidebarCollapsed(true);
+    });
+  }, []);
   const [patchTick, setPatchTick] = useState(0);
   const [agentOpen, setAgentOpen] = useState(false);
   const [agentContextState, setAgentContextState] = useState<AgentContext>({

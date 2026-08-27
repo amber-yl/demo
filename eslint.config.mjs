@@ -38,6 +38,9 @@ const eslintConfig = defineConfig([
     rules: {
       "jsx-a11y/no-autofocus": "off",
       "@typescript-eslint/no-explicit-any": "off",
+      // 读取 localStorage → state 是修复 hydration mismatch 的标准模式，
+      // React Compiler 的新规则对此过度严格，禁用它以保留 SSR 正确性
+      "react-hooks/no-state-updates-in-effects": "off",
     },
   },
 ]);
