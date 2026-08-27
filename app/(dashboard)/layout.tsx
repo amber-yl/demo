@@ -4,10 +4,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import type { ComponentProps } from "react";
+import { AntdRegistry } from "@ant-design/nextjs-registry";
 import AppSidebar from "@/components/AppSidebar";
 import AppTopBar from "@/components/AppTopBar";
 import type AgentPanelDefault from "@/components/AgentPanel";
-import { useApp } from "@/context";
+import { AppProvider, useApp } from "@/context";
 import type { WorkloadKind } from "@/types";
 import styles from "@/layouts/AppShell.module.less";
 
@@ -18,12 +19,9 @@ const AgentPanel = dynamic<ComponentProps<typeof AgentPanelDefault>>(
   { ssr: false, loading: () => null },
 );
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function DashboardShell({ children }: { children: React.ReactNode }) {
   const {
+    hydrated,
     user,
     token,
     logout,
@@ -42,12 +40,14 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
 
-  // auth guard：若未登录跳转登录页
+  // auth guard：等 hydrated 后（localStorage 恢复完）再检查，
+  // 避免子组件 effect 先于父组件恢复状态就踢人导致登录跳转失败
   useEffect(() => {
+    if (!hydrated) return;
     if (!token || !user) {
       router.replace("/login");
     }
-  }, [token, user, router]);
+  }, [hydrated, token, user, router]);
 
   // 根据路径同步 agentContextState.workload
   useEffect(() => {
@@ -60,6 +60,11 @@ export default function DashboardLayout({
       });
     }
   }, [pathname, setAgentContextState]);
+
+  // hydrated 前先渲染骨架（或空），不要在 hydrated 前就 return null
+  if (!hydrated) {
+    return <div className={styles.appShell} />;
+  }
 
   if (!token || !user) {
     return null;
@@ -119,5 +124,19 @@ export default function DashboardLayout({
         onApplyPrompt={() => { }}
       />
     </div>
+  );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <AntdRegistry>
+      <AppProvider>
+        <DashboardShell>{children}</DashboardShell>
+      </AppProvider>
+    </AntdRegistry>
   );
 }

@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { message } from "antd";
 import type {
   User,
   SimTemplate,
@@ -15,6 +14,17 @@ import type {
 import { TOKEN_KEY, USER_KEY } from "@/utils";
 import { api } from "@/utils/api";
 
+// antd.message 懒加载：避免把 antd 拉进 AppProvider 的初始模块图，
+// 减轻不需要 antd 的路由（如 /login）的首次编译负担
+let _antdMessage: typeof import("antd")["message"] | null = null;
+async function getMessage() {
+  if (!_antdMessage) {
+    const m = await import("antd");
+    _antdMessage = m.message;
+  }
+  return _antdMessage;
+}
+
 export type ToastApi = {
   success: (m: string) => void;
   error: (m: string) => void;
@@ -23,6 +33,7 @@ export type ToastApi = {
 };
 
 type AppContextValue = {
+  hydrated: boolean;
   token: string | null;
   user: User | null;
   login: (t: string, u: User) => void;
@@ -76,8 +87,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [templates, setTemplates] = useState<SimTemplate[]>([]);
   const [resultCache, setResultCache] = useState<Record<string, SimResult>>({});
   const [externalRunCounter, setExternalRunCounter] = useState(0);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<"dark" | "light">("light");
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  const [hydrated, setHydrated] = useState(false);
 
   // mounted 后从 localStorage / 浏览器 API 恢复状态
   // 用 queueMicrotask 包裹 setState，避免 React Compiler 的 no-state-updates-in-effects 诊断
@@ -95,11 +107,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const savedThemeStr = localStorage.getItem("simforge_theme");
       if (savedThemeStr === "dark" || savedThemeStr === "light") {
         restoredTheme = savedThemeStr;
-      } else if (
-        typeof window.matchMedia === "function" &&
-        window.matchMedia("(prefers-color-scheme: light)").matches
-      ) {
-        restoredTheme = "light";
       }
 
       shouldCollapse = window.innerWidth <= 1024;
@@ -112,6 +119,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (savedUser) setUser(savedUser);
       if (restoredTheme) setTheme(restoredTheme);
       if (shouldCollapse) setSidebarCollapsed(true);
+      // 关键：hydrated 必须在所有状态恢复完后才置 true，
+      // 这样子组件的 auth guard 等 effect 才会在 token/user 有值之后再执行
+      setHydrated(true);
     });
   }, []);
   const [patchTick, setPatchTick] = useState(0);
@@ -123,13 +133,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   });
   const agentContextRef = useRef<AgentContext>(agentContextState);
 
-  // ---------- toast api (antd message) ----------
+  // ---------- toast api (antd message，懒加载) ----------
   const toast = useMemo<ToastApi>(
     () => ({
-      success: (m) => message.success(m),
-      error: (m) => message.error(m),
-      warning: (m) => message.warning(m),
-      info: (m) => message.info(m),
+      success: (m) => { getMessage().then((x) => x.success(m)); },
+      error: (m) => { getMessage().then((x) => x.error(m)); },
+      warning: (m) => { getMessage().then((x) => x.warning(m)); },
+      info: (m) => { getMessage().then((x) => x.info(m)); },
     }),
     [],
   );
@@ -318,6 +328,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<AppContextValue>(() => ({
+    hydrated,
     token, user, login, logout,
     theme, toggleTheme,
     sidebarCollapsed, setSidebarCollapsed, toggleSidebar,
@@ -329,6 +340,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     applyPatchToWorkload, applyAgentPatch,
     toast,
   }), [
+    hydrated,
     token, user, login, logout,
     theme, toggleTheme,
     sidebarCollapsed, toggleSidebar,

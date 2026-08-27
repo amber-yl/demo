@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { AntdRegistry } from "@ant-design/nextjs-registry";
 import "./globals.css";
-import { AppProvider } from "@/context";
 
 export const metadata: Metadata = {
   title: "Nebula Sim Lab · 智能仿真管理平台",
@@ -19,11 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className="antialiased">
-        <AntdRegistry>
-          <AppProvider>{children}</AppProvider>
-        </AntdRegistry>
-      </body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }
