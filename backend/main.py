@@ -337,7 +337,7 @@ FIELD_OPTIONS: dict[str, list[str]] = {
     "kvcache_policy": ["Auto", "Full", "Half", "Lazy", "—"],
 }
 
-GPU_TYPES = ["A100 40GB", "A100 80GB", "A100 80GB SXM", "H100 80GB", "H800 80GB", "MI300X", "B200"]
+GPU_TYPES = ["A100 40GB", "A100 80GB", "A100 80GB SXM", "H100 80GB", "H800 80GB", "MI300X", "B200", "昇腾950"]
 PRECISIONS = ["FP8", "FP16", "BF16", "FP32", "INT8", "INT4"]
 QUANTS = ["无量化", "FP16", "BF16", "FP8", "INT8 AWQ", "INT4 GPTQ", "INT4 AWQ"]
 BITWIDTHS = ["4", "8", "16", "32"]
@@ -451,6 +451,7 @@ AGENT_SUGGESTIONS: list[str] = [
 GPU_MEMORY_MAP: dict[str, int] = {
     "A100 40GB": 40, "A100 80GB": 80, "A100 80GB SXM": 80,
     "H100 80GB": 80, "H800 80GB": 80, "MI300X": 192, "B200": 192,
+    "昇腾950": 128,
 }
 
 

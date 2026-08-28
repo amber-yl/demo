@@ -101,6 +101,10 @@ export type SchemaCardMeta = {
   summary?: string;
   /** 是否推荐 */
   recommended?: boolean;
+  /** 是否主流（卡片内以「主流」标签展示） */
+  mainstream?: boolean;
+  /** 卡片左侧配图 URL */
+  image?: string;
 };
 
 export type SchemasData = {

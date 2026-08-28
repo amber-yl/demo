@@ -14,7 +14,8 @@
                     "A100 80GB",
                     "H100 80GB",
                     "H800 80GB",
-                    "MI300X"
+                    "MI300X",
+                    "昇腾950"
                 ],
                 "x-variants": [
                     {
@@ -124,33 +125,33 @@
                         "interconnect": [
                             { "name": "FM", "size_limit": 8, "bandwidth_gbps": 100, "efficiency": 0.5, "latency_mode": "latency_us", "latency_us": 18, "latency_model": "ep_comm_unbalanced_latency_model" }
                         ]
-                    }
-                ],
-                "x-cards": [
-                    {
-                        "type": "A100 80GB",
-                        "tags": ["NVIDIA", "通用"],
-                        "description": "经典通用计算卡，生态成熟稳定",
-                        "summary": "FP16: 312 TFLOPS · HBM 80GB",
-                        "recommended": true
                     },
                     {
-                        "type": "H100 80GB",
-                        "tags": ["NVIDIA", "高性能"],
-                        "description": "Transformer 引擎加速，训练推理皆宜",
-                        "summary": "FP16: 990 TFLOPS · HBM 80GB"
-                    },
-                    {
-                        "type": "H800 80GB",
-                        "tags": ["NVIDIA", "国内可用"],
-                        "description": "H100 互联带宽削减版，性价比之选",
-                        "summary": "FP16: 356 TFLOPS · HBM 64GB"
-                    },
-                    {
-                        "type": "MI300X",
-                        "tags": ["AMD", "大显存"],
-                        "description": "192GB 大显存，适合超大规模模型部署",
-                        "summary": "FP16: 1307 TFLOPS · HBM 192GB"
+                        "matrix_compute": {
+                            "fp16_tflops": 1024,
+                            "fp8_tflops": 2048,
+                            "fp4_tflops": 4096,
+                            "efficiency": 0.75,
+                            "matmul_kernel_launch_us": 7,
+                            "flash_attn_kernel_launch_us": 11
+                        },
+                        "vector_compute": {
+                            "fp32_tflops": 60,
+                            "fp16_tflops": 120,
+                            "efficiency": 0.78
+                        },
+                        "data_placement": {
+                            "memory": [
+                                { "tier": "tier1", "memory_kind": "hbm", "capacity_gb": 128, "bandwidth_gbps": 4000, "efficiency": 0.82, "sparse_efficiency": 0.35 },
+                                { "tier": "tier2", "memory_kind": "ddr", "capacity_gb": 512, "bandwidth_gbps": 64, "efficiency": 0.6, "sparse_efficiency": 0.25 }
+                            ],
+                            "weights": "tier1",
+                            "kv_cache": "tier1",
+                            "activations": "tier1"
+                        },
+                        "interconnect": [
+                            { "name": "FM", "size_limit": 16, "bandwidth_gbps": 400, "efficiency": 0.5, "latency_mode": "latency_us", "latency_us": 18, "latency_model": "ep_comm_balanced_latency_model" }
+                        ]
                     }
                 ]
             },
@@ -491,6 +492,47 @@
             "matrix_compute.fp8_tflops",
             "data_placement.memory.0.capacity_gb",
             "data_placement.memory.0.bandwidth_gbps"
+        ],
+        "x-cards": [
+            {
+                "type": "A100 80GB",
+                "tags": ["NVIDIA", "通用"],
+                "description": "经典通用计算卡，生态成熟稳定",
+                "summary": "FP16: 312 TFLOPS · HBM 80GB",
+                "recommended": true,
+                "mainstream": true,
+                "image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=NVIDIA%20A100%20GPU%20accelerator%20card%20product%20photo%2C%20black%20metallic%20datacenter%20GPU%20with%20gold%20accents%2C%20studio%20lighting%2C%20dark%20background&image_size=square"
+            },
+            {
+                "type": "H100 80GB",
+                "tags": ["NVIDIA", "高性能"],
+                "description": "Transformer 引擎加速，训练推理皆宜",
+                "summary": "FP16: 990 TFLOPS · HBM 80GB",
+                "mainstream": true,
+                "image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=NVIDIA%20H100%20GPU%20accelerator%20card%20product%20photo%2C%20futuristic%20metallic%20datacenter%20GPU%2C%20green%20accent%2C%20studio%20lighting%2C%20dark%20background&image_size=square"
+            },
+            {
+                "type": "H800 80GB",
+                "tags": ["NVIDIA", "国内可用"],
+                "description": "H100 互联带宽削减版，性价比之选",
+                "summary": "FP16: 356 TFLOPS · HBM 64GB",
+                "image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=NVIDIA%20H800%20GPU%20accelerator%20card%20product%20photo%2C%20dual%20fan%20datacenter%20GPU%2C%20metallic%20shroud%2C%20studio%20lighting%2C%20dark%20background&image_size=square"
+            },
+            {
+                "type": "MI300X",
+                "tags": ["AMD", "大显存"],
+                "description": "192GB 大显存，适合超大规模模型部署",
+                "summary": "FP16: 1307 TFLOPS · HBM 192GB",
+                "image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=AMD%20Instinct%20MI300X%20GPU%20accelerator%20card%20product%20photo%2C%20large%20red%20and%20black%20datacenter%20GPU%20module%2C%20studio%20lighting%2C%20dark%20background&image_size=square"
+            },
+            {
+                "type": "昇腾950",
+                "tags": ["Huawei", "国产"],
+                "description": "华为昇腾新一代 AI 处理器，全国产自主可控",
+                "summary": "FP16: 1024 TFLOPS · HBM 128GB",
+                "mainstream": true,
+                "image": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Huawei%20Ascend%20950%20AI%20accelerator%20card%20product%20photo%2C%20red%20and%20white%20datacenter%20AI%20chip%20module%2C%20studio%20lighting%2C%20dark%20background&image_size=square"
+            }
         ]
     }
 }

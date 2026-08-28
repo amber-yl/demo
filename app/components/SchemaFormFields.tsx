@@ -2,8 +2,8 @@
 
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
-import { Tooltip } from "antd";
-import type { ConfigSchema, SchemaProperty } from "@/utils/api";
+import { Input, InputNumber, Select, Tooltip } from "antd";
+import type { ConfigSchema, SchemaCardMeta, SchemaProperty } from "@/utils/api";
 import sf from "./SchemaFormFields.module.less";
 
 // ============= JSON Schema 工具 =============
@@ -222,6 +222,63 @@ export function FieldGrid({
   );
 }
 
+// ============= Schema 参数行（抽屉内使用） =============
+
+/** 按 schema 渲染单个参数行：enum→Select / 数字→InputNumber / 其他→Input */
+export function SchemaParamRow({
+  schema,
+  path,
+  value,
+  error,
+  onChange,
+}: {
+  schema: ConfigSchema | null;
+  path: string;
+  value: unknown;
+  error?: string;
+  onChange: (path: string, value: unknown) => void;
+}) {
+  const prop = resolveProp(schema, path);
+  if (!prop) return null;
+  const isNumber = prop.type === "number" || prop.type === "integer";
+  return (
+    <FieldRow
+      label={prop.title ?? path}
+      required={isRequiredBySchema(schema!, path)}
+      error={error}
+    >
+      {Array.isArray(prop.enum) && prop.enum.length > 0 ? (
+        <Select
+          value={value === undefined || value === null ? undefined : String(value)}
+          options={prop.enum.map((v, i) => ({
+            value: v,
+            label: prop["x-enum-label"]?.[i] ?? v,
+          }))}
+          onChange={(v) => onChange(path, v)}
+          style={{ width: "100%" }}
+        />
+      ) : isNumber ? (
+        <InputNumber
+          value={value === undefined || value === null ? undefined : (value as number)}
+          min={prop.minimum}
+          max={prop.maximum}
+          step={prop.type === "integer" ? 1 : 0.01}
+          precision={prop.type === "integer" ? 0 : undefined}
+          suffix={prop.unit}
+          controls={false}
+          style={{ width: "100%" }}
+          onChange={(v) => onChange(path, v)}
+        />
+      ) : (
+        <Input
+          value={value === undefined || value === null ? "" : String(value)}
+          onChange={(e) => onChange(path, e.target.value)}
+        />
+      )}
+    </FieldRow>
+  );
+}
+
 // ============= 类型卡片选择（模型/芯片） =============
 
 /**
@@ -242,7 +299,15 @@ export function SchemaCardGrid({
   columns?: 1 | 2;
 }) {
   const [tab, setTab] = useState("全部");
-  const cards = schema["x-cards"] ?? [];
+  // x-cards 允许放在 schema 顶层或类型属性（chip_type/model_type）内部
+  const typeKey = typeKeyOf(schema);
+  const typeCards =
+    typeKey
+      ? (schema.properties[typeKey] as unknown as Record<string, unknown>)?.[
+      "x-cards"
+      ]
+      : undefined;
+  const cards = (schema["x-cards"] ?? typeCards ?? []) as SchemaCardMeta[];
   const categories = Array.from(
     new Set(cards.map((c) => c.category).filter((c): c is string => Boolean(c))),
   );
@@ -271,14 +336,15 @@ export function SchemaCardGrid({
       >
         {shown.map((card) => {
           const active = card.type === value;
+          const cardCls = [sf.modelCard, card.image ? sf.chipCard : "", active ? sf.modelCardActive : ""]
+            .filter(Boolean)
+            .join(" ");
           return (
             <div
               key={card.type}
               role="button"
               tabIndex={0}
-              className={
-                active ? `${sf.modelCard} ${sf.modelCardActive}` : sf.modelCard
-              }
+              className={cardCls}
               onClick={() => onSelect(card.type)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
@@ -292,22 +358,32 @@ export function SchemaCardGrid({
               ) : card.recommended ? (
                 <span className={`${sf.cardCorner} ${sf.recBadge}`}>推荐</span>
               ) : null}
-              <div className={sf.cardHead}>
-                <div className={sf.cardName}>{card.type}</div>
-                {card.tags && card.tags.length > 0 && (
-                  <div className={sf.cardTags}>
-                    {card.tags.map((t, ti) => (
-                      <span key={t} className={`${sf.cardTag} ${sf[`tag${ti % 3}`]}`}>
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {card.description && (
-                <div className={sf.cardDesc}>{card.description}</div>
+              {card.image && (
+                <div className={sf.cardMedia}>
+                  <img src={card.image} alt={card.type} loading="lazy" />
+                </div>
               )}
-              {card.summary && <div className={sf.cardSummary}>{card.summary}</div>}
+              <div className={card.image ? sf.cardContent : undefined}>
+                <div className={sf.cardHead}>
+                  <div className={sf.cardName}>{card.type}</div>
+                  {(card.mainstream || (card.tags && card.tags.length > 0)) && (
+                    <div className={sf.cardTags}>
+                      {card.mainstream && (
+                        <span className={`${sf.cardTag} ${sf.mainstreamTag}`}>主流</span>
+                      )}
+                      {card.tags?.map((t, ti) => (
+                        <span key={t} className={`${sf.cardTag} ${sf[`tag${ti % 3}`]}`}>
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {card.description && (
+                  <div className={sf.cardDesc}>{card.description}</div>
+                )}
+                {card.summary && <div className={sf.cardSummary}>{card.summary}</div>}
+              </div>
             </div>
           );
         })}

@@ -13,16 +13,18 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
-import { Drawer, Input, InputNumber, Select } from "antd";
+import { Drawer, InputNumber, Select } from "antd";
 import ResultPanel from "@/components/ResultPanel";
 import {
   SchemaCardGrid,
+  SchemaParamRow,
   FieldRow,
   FieldGrid,
   typeKeyOf,
+  getByPath,
+  setByPath,
   initValuesFromSchema,
   validateSchemaFields,
-  resolveProp,
 } from "@/components/SchemaFormFields";
 import type { FieldErrors } from "@/components/SchemaFormFields";
 import type {
@@ -305,8 +307,9 @@ export default function WorkloadPage({
   // 自研表单校验错误（key: "config.<field>" / "model.<path>" / "chip.<path>"）
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
-  // 模型参数抽屉（选中模型卡片后展示）
+  // 模型/芯片参数抽屉（选中对应卡片后展示）
   const [modelDrawerOpen, setModelDrawerOpen] = useState(false);
+  const [chipDrawerOpen, setChipDrawerOpen] = useState(false);
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [serviceOpen, setServiceOpen] = useState(true);
@@ -599,6 +602,18 @@ export default function WorkloadPage({
     setModelDrawerOpen(true);
   };
 
+  /** 编辑芯片参数（路径可能嵌套，如 matrix_compute.fp16_tflops） */
+  const setChipValue = (path: string, value: unknown) => {
+    setChipValues((prev) => setByPath(prev, path, value));
+    clearFieldError(`chip.${path}`);
+  };
+
+  /** 选择芯片卡片：应用 variant 并打开右侧参数抽屉 */
+  const handleChipSelect = (type: string) => {
+    applyChipVariant(type);
+    setChipDrawerOpen(true);
+  };
+
   /** 切换芯片类型：用对应 variant 填充芯片参数，并与 GPU 类型字段联动 */
   const applyChipVariant = (type: string) => {
     const found = schemaVariantFor(schemas.chip, type);
@@ -651,48 +666,6 @@ export default function WorkloadPage({
             controls={false}
             style={{ width: "100%" }}
             onChange={(v) => setConfigField(f.key, v)}
-          />
-        )}
-      </FieldRow>
-    );
-  };
-
-  /** 渲染抽屉中的模型参数行（schema 驱动） */
-  const renderModelParam = (path: string) => {
-    if (!schemas.model) return null;
-    const prop = resolveProp(schemas.model, path);
-    if (!prop) return null;
-    const value = modelValues[path];
-    const err = fieldErrors[`model.${path}`];
-    const isNumber = prop.type === "number" || prop.type === "integer";
-    return (
-      <FieldRow key={path} label={prop.title ?? path} required error={err}>
-        {Array.isArray(prop.enum) && prop.enum.length > 0 ? (
-          <Select
-            value={value === undefined || value === null ? undefined : String(value)}
-            options={prop.enum.map((v, i) => ({
-              value: v,
-              label: prop["x-enum-label"]?.[i] ?? v,
-            }))}
-            onChange={(v) => setModelValue(path, v)}
-            style={{ width: "100%" }}
-          />
-        ) : isNumber ? (
-          <InputNumber
-            value={value === undefined || value === null ? undefined : (value as number)}
-            min={prop.minimum}
-            max={prop.maximum}
-            step={prop.type === "integer" ? 1 : 0.01}
-            precision={prop.type === "integer" ? 0 : undefined}
-            suffix={prop.unit}
-            controls={false}
-            style={{ width: "100%" }}
-            onChange={(v) => setModelValue(path, v)}
-          />
-        ) : (
-          <Input
-            value={value === undefined || value === null ? "" : String(value)}
-            onChange={(e) => setModelValue(path, e.target.value)}
           />
         )}
       </FieldRow>
@@ -855,12 +828,10 @@ export default function WorkloadPage({
                   <SchemaCardGrid
                     schema={schemas.chip}
                     value={chipTypeKey ? String(chipValues[chipTypeKey] ?? "") : undefined}
-                    onSelect={applyChipVariant}
+                    onSelect={handleChipSelect}
+                    columns={1}
                   />
                 )}
-                <FieldGrid columns={FORM_COLUMNS}>
-                  {CHIP_FIELDS.map(renderConfigField)}
-                </FieldGrid>
               </div>
             </details>
 
@@ -885,6 +856,7 @@ export default function WorkloadPage({
               <div className={styles.detailsBody}>
                 <FieldGrid columns={FORM_COLUMNS}>
                   {SERVICE_FIELDS.map(renderConfigField)}
+                  {CHIP_FIELDS.map(renderConfigField)}
                   {RUNTIME_FIELDS.map(renderConfigField)}
                 </FieldGrid>
               </div>
@@ -960,7 +932,42 @@ export default function WorkloadPage({
         width={420}
       >
         <FieldGrid columns={1}>
-          {(schemas.model?.["x-main-paths"] ?? []).map(renderModelParam)}
+          {(schemas.model?.["x-main-paths"] ?? []).map((p) => (
+            <SchemaParamRow
+              key={p}
+              schema={schemas.model}
+              path={p}
+              value={getByPath(modelValues, p)}
+              error={fieldErrors[`model.${p}`]}
+              onChange={setModelValue}
+            />
+          ))}
+        </FieldGrid>
+      </Drawer>
+
+      {/* 芯片参数抽屉：选中芯片卡片后从右侧展示对应参数表单 */}
+      <Drawer
+        open={chipDrawerOpen}
+        onClose={() => setChipDrawerOpen(false)}
+        title={
+          chipTypeKey && chipValues[chipTypeKey]
+            ? `${chipValues[chipTypeKey]} 参数配置`
+            : "芯片参数配置"
+        }
+        placement="right"
+        width={420}
+      >
+        <FieldGrid columns={1}>
+          {(schemas.chip?.["x-main-paths"] ?? []).map((p) => (
+            <SchemaParamRow
+              key={p}
+              schema={schemas.chip}
+              path={p}
+              value={getByPath(chipValues, p)}
+              error={fieldErrors[`chip.${p}`]}
+              onChange={setChipValue}
+            />
+          ))}
         </FieldGrid>
       </Drawer>
     </div >
