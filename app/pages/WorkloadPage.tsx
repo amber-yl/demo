@@ -12,8 +12,10 @@ import {
   AlertTriangle,
   CheckCircle2,
   X,
+  Save,
+  RotateCcw,
 } from "lucide-react";
-import { Drawer, InputNumber, Select } from "antd";
+import { Drawer, InputNumber, Select, message } from "antd";
 import ResultPanel from "@/components/ResultPanel";
 import {
   SchemaCardGrid,
@@ -747,6 +749,70 @@ export default function WorkloadPage({
 
   const lastLog = logs[logs.length - 1];
 
+  // ---------- 抽屉底部操作：保存模板 / 重置 ----------
+
+  /** 保存模型参数为本地自定义模板（localStorage） */
+  const handleSaveModelTemplate = useCallback(() => {
+    try {
+      const typeKey = typeKeyOf(schemas.model);
+      const typeValue = typeKey ? String(modelValues[typeKey] ?? "") : "";
+      const payload = { kind, type: typeValue, values: { ...modelValues }, savedAt: Date.now() };
+      const key = `simforge:custom-templates:${kind}:model`;
+      const list = JSON.parse(localStorage.getItem(key) ?? "[]") as unknown[];
+      list.push(payload);
+      localStorage.setItem(key, JSON.stringify(list));
+      message.success(typeValue ? `已保存「${typeValue}」模型参数为本地模板` : "已保存当前模型参数为本地模板");
+    } catch {
+      message.error("保存失败：浏览器存储不可用");
+    }
+  }, [kind, modelValues, schemas.model]);
+
+  /** 重置模型参数为 schema 初始值（首个 variant），并联动主表单 precision / maxModelLen */
+  const handleResetModelValues = useCallback(() => {
+    const init = initValuesFromSchema(schemas.model);
+    setModelValues(init);
+    clearFieldErrorPrefix("model.");
+    const typeKey = typeKeyOf(schemas.model);
+    const variant = schemas.model?.properties[typeKey ?? ""]?.["x-variants"]?.[0] ?? {};
+    setConfig((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev };
+      if (typeof variant.precision === "string") next.precision = variant.precision as string;
+      if (typeof variant.context_length === "number") next.maxModelLen = variant.context_length as number;
+      return next;
+    });
+    message.info("已重置模型参数为默认值");
+  }, [schemas.model, clearFieldErrorPrefix]);
+
+  /** 保存芯片参数为本地自定义模板（localStorage） */
+  const handleSaveChipTemplate = useCallback(() => {
+    try {
+      const typeKey = typeKeyOf(schemas.chip);
+      const typeValue = typeKey ? String(chipValues[typeKey] ?? "") : "";
+      const payload = { kind, type: typeValue, values: { ...chipValues }, savedAt: Date.now() };
+      const key = `simforge:custom-templates:${kind}:chip`;
+      const list = JSON.parse(localStorage.getItem(key) ?? "[]") as unknown[];
+      list.push(payload);
+      localStorage.setItem(key, JSON.stringify(list));
+      message.success(typeValue ? `已保存「${typeValue}」芯片参数为本地模板` : "已保存当前芯片参数为本地模板");
+    } catch {
+      message.error("保存失败：浏览器存储不可用");
+    }
+  }, [kind, chipValues, schemas.chip]);
+
+  /** 重置芯片参数为 schema 初始值（首个 variant），并联动主表单 gpuType */
+  const handleResetChipValues = useCallback(() => {
+    const init = initValuesFromSchema(schemas.chip);
+    setChipValues(init);
+    clearFieldErrorPrefix("chip.");
+    const typeKey = typeKeyOf(schemas.chip);
+    const firstType = schemas.chip?.properties[typeKey ?? ""]?.enum?.[0];
+    if (firstType && typeof firstType === "string") {
+      setConfig((prev) => (prev ? { ...prev, gpuType: firstType } : prev));
+    }
+    message.info("已重置芯片参数为默认值");
+  }, [schemas.chip, clearFieldErrorPrefix]);
+
   if (!config) return <div className={styles.page}>加载中...</div>;
 
   const modelTypeKey = typeKeyOf(schemas.model);
@@ -930,6 +996,26 @@ export default function WorkloadPage({
         }
         placement="right"
         width={420}
+        footer={
+          <div className={styles.drawerFooter}>
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnPrimary} flex-1`}
+              onClick={handleSaveModelTemplate}
+            >
+              <Save size={15} />
+              <span>保存模板</span>
+            </button>
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnSecondary} flex-1`}
+              onClick={handleResetModelValues}
+            >
+              <RotateCcw size={15} />
+              <span>重置</span>
+            </button>
+          </div>
+        }
       >
         <FieldGrid columns={1}>
           {(schemas.model?.["x-main-paths"] ?? []).map((p) => (
@@ -956,6 +1042,26 @@ export default function WorkloadPage({
         }
         placement="right"
         width={420}
+        footer={
+          <div className={styles.drawerFooter}>
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnSecondary}`}
+              onClick={handleResetChipValues}
+            >
+              <RotateCcw size={15} />
+              <span>重置</span>
+            </button>
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnPrimary}`}
+              onClick={handleSaveChipTemplate}
+            >
+              <Save size={15} />
+              <span>保存模板</span>
+            </button>
+          </div>
+        }
       >
         <FieldGrid columns={1}>
           {(schemas.chip?.["x-main-paths"] ?? []).map((p) => (
