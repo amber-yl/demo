@@ -38,8 +38,19 @@
 }
 
 /* ============= 抽屉内 Schema 参数表单（antd Form + 2 列纵向布局） ============= */
-@drawer-height: 3.125rem;
-@border-radius: 1.1rem;
+/*
+ * 响应式尺寸：clamp(min, preferred, max)
+ * 1440px 视口下保持当前基线（@drawer-height≈50px、@border-radius≈17.6px），
+ * 视口变宽时线性放大，至 2560px 达到 ≈74px / ≈26px，更高分辨率封顶不变。
+ * 使用 ~"..." 转义避免 Less 把 vw 算术当成数学运算求值。
+ */
+@drawer-height: ~"clamp(3.125rem, 1.1rem + 2.2vw, 4.625rem)";
+@border-radius: ~"clamp(1.1rem, 0.425rem + 0.75vw, 1.625rem)";
+@label-font: ~"clamp(1.1rem, 0.6rem + 0.55vw, 1.5rem)";
+@label-height: ~"clamp(1.5rem, 0.85rem + 0.7vw, 2rem)";
+@indicator-size: ~"clamp(1.5rem, 0.85rem + 0.7vw, 2rem)";
+@item-gap: ~"clamp(0.875rem, 0.5rem + 0.4vw, 1.375rem)";
+
 .drawerForm {
   /* 让 antd Form 内部使用 24 栅格（Row/Col 不依赖 Form.Item 默认 100%） */
   width: 100%;
@@ -47,15 +58,15 @@
 
 /* Form.Item：纵向布局，label 在上、输入框在下，去除默认下边距过紧 */
 .drawerFormItem {
-  margin-bottom: 0.875rem;
+  margin-bottom: @item-gap;
 }
 
 /* label：黑色加粗 */
 .drawerForm :global(.ant-form-item-label) > label {
   color: #717070 !important;
   font-weight: 600 !important;
-  font-size: 1.1rem;
-  height: 1.5rem;
+  font-size: @label-font;
+  height: @label-height;
   padding-bottom: 0.125rem;
 }
 
@@ -104,14 +115,14 @@
 
 /* Checkbox/Radio 内部指示器尺寸放大以匹配行高 */
 .drawerControl:global(.ant-checkbox-inner) {
-  width: 1.5rem !important;
-  height: 1.5rem !important;
-  border-radius: 0.375rem !important;
+  width: @indicator-size !important;
+  height: @indicator-size !important;
+  border-radius: ~"clamp(0.375rem, 0.2rem + 0.25vw, 0.5625rem)" !important;
 }
 
 .drawerControl:global(.ant-radio-inner) {
-  width: 1.5rem !important;
-  height: 1.5rem !important;
+  width: @indicator-size !important;
+  height: @indicator-size !important;
 }
 
 /* 聚焦时仍保留浅灰背景，仅强化边框 */

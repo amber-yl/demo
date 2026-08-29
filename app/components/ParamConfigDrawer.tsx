@@ -40,7 +40,7 @@ export default function ParamConfigDrawer({
       onClose={onClose}
       title={title}
       placement="right"
-      size="default"
+      width="clamp(380px, 26vw, 700px)"
       footer={
         <div className={styles.drawerFooter}>
           <button
