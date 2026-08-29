@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "@/context";
 import type { WorkloadKind } from "@/types";
+import type { ConfigSchema } from "@/utils/api";
 import OriginalWorkloadPage from "@/pages/WorkloadPage";
 
 /**
@@ -10,7 +11,14 @@ import OriginalWorkloadPage from "@/pages/WorkloadPage";
  * 接收固定的 kind，从 useApp() 取所有依赖 props。
  * 供 /simulation/workload/[kind] 及 NGC 相关页面等路由复用。
  */
-export default function WorkloadPageView({ kind }: { kind: WorkloadKind }) {
+export default function WorkloadPageView({
+  kind,
+  chipDrawerSchema,
+}: {
+  kind: WorkloadKind;
+  /** 芯片抽屉表单 schema 覆盖（仅需要定制抽屉字段的路由传入，如内存池页） */
+  chipDrawerSchema?: ConfigSchema | null;
+}) {
   const app = useApp();
 
   const [mountTick, setMountTick] = useState(0);
@@ -30,6 +38,7 @@ export default function WorkloadPageView({ kind }: { kind: WorkloadKind }) {
       agentApplyPatch={app.applyPatchToWorkload}
       getCachedResult={app.getCachedResult}
       setCachedResult={app.setCachedResult}
+      chipDrawerSchema={chipDrawerSchema}
     />
   );
 }

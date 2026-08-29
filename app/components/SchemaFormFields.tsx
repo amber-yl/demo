@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
-import { Col, Form, Input, InputNumber, Row, Select, Tooltip } from "antd";
+import { Col, Form, Input, InputNumber, Radio, Row, Select, Tooltip } from "antd";
 import type { ConfigSchema, SchemaCardMeta, SchemaProperty } from "@/utils/api";
 import sf from "./SchemaFormFields.module.less";
 
@@ -98,6 +98,29 @@ export function initValuesFromSchema(schema: ConfigSchema | null): Record<string
   const first = prop?.enum?.[0];
   const variant = prop?.["x-variants"]?.[0] ?? {};
   return { ...(first !== undefined ? { [key]: first } : {}), ...variant };
+}
+
+/**
+ * 扁平 schema 默认值：遍历 x-main-paths，按 default → enum[0] → 数字 0 → 空串
+ * 顺序取值。用于无 x-variants 的覆盖 schema（如内存池页的 demo.json 抽屉字段）。
+ */
+export function initFlatDefaults(schema: ConfigSchema | null): Record<string, unknown> {
+  if (!schema) return {};
+  const out: Record<string, unknown> = {};
+  for (const path of schema["x-main-paths"] ?? []) {
+    const prop = resolveProp(schema, path);
+    if (!prop) continue;
+    if (prop.default !== undefined) {
+      out[path] = prop.default;
+    } else if (Array.isArray(prop.enum) && prop.enum.length > 0) {
+      out[path] = prop.enum[0];
+    } else if (prop.type === "number" || prop.type === "integer") {
+      out[path] = 0;
+    } else {
+      out[path] = "";
+    }
+  }
+  return out;
 }
 
 // ============= 自研校验（依据 JSON Schema） =============
@@ -325,16 +348,31 @@ export function DrawerSchemaForm({
                 colon={false}
               >
                 {Array.isArray(prop.enum) && prop.enum.length > 0 ? (
-                  <Select
-                    value={value === undefined || value === null ? undefined : String(value)}
-                    options={prop.enum.map((v, i) => ({
-                      value: v,
-                      label: prop["x-enum-label"]?.[i] ?? v,
-                    }))}
-                    onChange={(v) => onChange(p, v)}
-                    className={sf.drawerControl}
-                    style={{ width: "100%" }}
-                  />
+                  prop["valueType"] === "Radio.Button" ? (
+                    <Radio.Group
+                      value={value === undefined || value === null ? undefined : String(value)}
+                      onChange={(e) => onChange(p, e.target.value)}
+                      className={sf.drawerControl}
+                      style={{ width: "100%" }}
+                    >
+                      {prop.enum.map((v, i) => (
+                        <Radio.Button key={v} value={v}>
+                          {prop["x-enum-label"]?.[i] ?? v}
+                        </Radio.Button>
+                      ))}
+                    </Radio.Group>
+                  ) : (
+                    <Select
+                      value={value === undefined || value === null ? undefined : String(value)}
+                      options={prop.enum.map((v, i) => ({
+                        value: v,
+                        label: prop["x-enum-label"]?.[i] ?? v,
+                      }))}
+                      onChange={(v) => onChange(p, v)}
+                      className={sf.drawerControl}
+                      style={{ width: "100%" }}
+                    />
+                  )
                 ) : isNumber ? (
                   <InputNumber
                     value={value === undefined || value === null ? undefined : (value as number)}

@@ -23,6 +23,7 @@ import {
   typeKeyOf,
   setByPath,
   initValuesFromSchema,
+  initFlatDefaults,
   validateSchemaFields,
 } from "@/components/SchemaFormFields";
 import type { FieldErrors } from "@/components/SchemaFormFields";
@@ -276,6 +277,8 @@ type Props = {
   agentApplyPatch: (patch: Record<string, unknown>) => void;
   getCachedResult: (kind: WorkloadKind, scene: SceneKind) => SimResult | null;
   setCachedResult: (kind: WorkloadKind, scene: SceneKind, result: SimResult) => void;
+  /** 芯片抽屉表单 schema 覆盖：传入则抽屉字段改用此 schema（卡片选择仍用后端 schemas.chip） */
+  chipDrawerSchema?: ConfigSchema | null;
   key?: string | number;
 };
 
@@ -289,6 +292,7 @@ export default function WorkloadPage({
   agentApplyPatch,
   getCachedResult,
   setCachedResult,
+  chipDrawerSchema,
 }: Props) {
   const [options, setOptions] = useState<OptionsData | null>(null);
   const [workloadDefaults, setWorkloadDefaults] = useState<Record<WorkloadKind, WorkloadConfig> | null>(null);
@@ -334,7 +338,11 @@ export default function WorkloadPage({
         setWorkloadDefaults(wd);
         setSchemas(sch);
         setModelValues(initValuesFromSchema(sch.model));
-        setChipValues(initValuesFromSchema(sch.chip));
+        // chipValues：卡片选择字段（来自后端 sch.chip）+ 抽屉覆盖字段（chipDrawerSchema，如内存池页 demo.json）
+        setChipValues({
+          ...initValuesFromSchema(sch.chip),
+          ...initFlatDefaults(chipDrawerSchema ?? null),
+        });
       } catch {
         /* keep null state */
       }
@@ -799,7 +807,11 @@ export default function WorkloadPage({
 
   /** 重置芯片参数为 schema 初始值（首个 variant），并联动主表单 gpuType */
   const handleResetChipValues = useCallback(() => {
-    const init = initValuesFromSchema(schemas.chip);
+    // 卡片选择字段重置为后端 sch.chip 首个 variant；抽屉覆盖字段重置为 chipDrawerSchema 默认值
+    const init = {
+      ...initValuesFromSchema(schemas.chip),
+      ...initFlatDefaults(chipDrawerSchema ?? null),
+    };
     setChipValues(init);
     clearFieldErrorPrefix("chip.");
     const typeKey = typeKeyOf(schemas.chip);
@@ -808,7 +820,7 @@ export default function WorkloadPage({
       setConfig((prev) => (prev ? { ...prev, gpuType: firstType } : prev));
     }
     message.info("已重置芯片参数为默认值");
-  }, [schemas.chip, clearFieldErrorPrefix]);
+  }, [schemas.chip, chipDrawerSchema, clearFieldErrorPrefix]);
 
   if (!config) return <div className={styles.page}>加载中...</div>;
 
@@ -1009,7 +1021,7 @@ export default function WorkloadPage({
             ? `${chipValues[chipTypeKey]} 参数配置`
             : "芯片参数配置"
         }
-        schema={schemas.chip}
+        schema={chipDrawerSchema ?? schemas.chip}
         values={chipValues}
         errors={fieldErrors}
         onChange={setChipValue}
