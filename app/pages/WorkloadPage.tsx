@@ -12,18 +12,15 @@ import {
   AlertTriangle,
   CheckCircle2,
   X,
-  Save,
-  RotateCcw,
 } from "lucide-react";
-import { Drawer, InputNumber, Select, message } from "antd";
+import { InputNumber, Select, message } from "antd";
 import ResultPanel from "@/components/ResultPanel";
+import ParamConfigDrawer from "@/components/ParamConfigDrawer";
 import {
   SchemaCardGrid,
-  SchemaParamRow,
   FieldRow,
   FieldGrid,
   typeKeyOf,
-  getByPath,
   setByPath,
   initValuesFromSchema,
   validateSchemaFields,
@@ -986,7 +983,7 @@ export default function WorkloadPage({
       </div>
 
       {/* 模型参数抽屉：选中模型卡片后从右侧展示对应参数表单 */}
-      <Drawer
+      <ParamConfigDrawer
         open={modelDrawerOpen}
         onClose={() => setModelDrawerOpen(false)}
         title={
@@ -994,45 +991,17 @@ export default function WorkloadPage({
             ? `${modelValues[modelTypeKey]} 参数配置`
             : "模型参数配置"
         }
-        placement="right"
-        width={420}
-        footer={
-          <div className={styles.drawerFooter}>
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnPrimary} flex-1`}
-              onClick={handleSaveModelTemplate}
-            >
-              <Save size={15} />
-              <span>保存模板</span>
-            </button>
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnSecondary} flex-1`}
-              onClick={handleResetModelValues}
-            >
-              <RotateCcw size={15} />
-              <span>重置</span>
-            </button>
-          </div>
-        }
-      >
-        <FieldGrid columns={1}>
-          {(schemas.model?.["x-main-paths"] ?? []).map((p) => (
-            <SchemaParamRow
-              key={p}
-              schema={schemas.model}
-              path={p}
-              value={getByPath(modelValues, p)}
-              error={fieldErrors[`model.${p}`]}
-              onChange={setModelValue}
-            />
-          ))}
-        </FieldGrid>
-      </Drawer>
+        schema={schemas.model}
+        values={modelValues}
+        errors={fieldErrors}
+        onChange={setModelValue}
+        onSave={handleSaveModelTemplate}
+        onReset={handleResetModelValues}
+        prefix="model."
+      />
 
       {/* 芯片参数抽屉：选中芯片卡片后从右侧展示对应参数表单 */}
-      <Drawer
+      <ParamConfigDrawer
         open={chipDrawerOpen}
         onClose={() => setChipDrawerOpen(false)}
         title={
@@ -1040,42 +1009,14 @@ export default function WorkloadPage({
             ? `${chipValues[chipTypeKey]} 参数配置`
             : "芯片参数配置"
         }
-        placement="right"
-        width={420}
-        footer={
-          <div className={styles.drawerFooter}>
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnSecondary}`}
-              onClick={handleResetChipValues}
-            >
-              <RotateCcw size={15} />
-              <span>重置</span>
-            </button>
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnPrimary}`}
-              onClick={handleSaveChipTemplate}
-            >
-              <Save size={15} />
-              <span>保存模板</span>
-            </button>
-          </div>
-        }
-      >
-        <FieldGrid columns={1}>
-          {(schemas.chip?.["x-main-paths"] ?? []).map((p) => (
-            <SchemaParamRow
-              key={p}
-              schema={schemas.chip}
-              path={p}
-              value={getByPath(chipValues, p)}
-              error={fieldErrors[`chip.${p}`]}
-              onChange={setChipValue}
-            />
-          ))}
-        </FieldGrid>
-      </Drawer>
+        schema={schemas.chip}
+        values={chipValues}
+        errors={fieldErrors}
+        onChange={setChipValue}
+        onSave={handleSaveChipTemplate}
+        onReset={handleResetChipValues}
+        prefix="chip."
+      />
     </div >
   );
 }

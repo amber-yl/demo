@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import type { Configuration, RuleSetRule } from "webpack";
+import { codeInspectorPlugin } from 'code-inspector-plugin';
 
 const BRAND_VARS = `
   @brand-500: #22d3ee;
@@ -147,6 +148,7 @@ const nextConfig: NextConfig = {
   },
   webpack: (config) => {
     injectLessSupport(config);
+    config.plugins.push(codeInspectorPlugin({ bundler: 'webpack' }));
     return config;
   },
 };

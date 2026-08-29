@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
-import { Input, InputNumber, Select, Tooltip } from "antd";
+import { Col, Form, Input, InputNumber, Row, Select, Tooltip } from "antd";
 import type { ConfigSchema, SchemaCardMeta, SchemaProperty } from "@/utils/api";
 import sf from "./SchemaFormFields.module.less";
 
@@ -276,6 +276,91 @@ export function SchemaParamRow({
         />
       )}
     </FieldRow>
+  );
+}
+
+// ============= 抽屉内 Schema 参数表单（antd Form + 2 列纵向布局） =============
+
+/**
+ * 抽屉内参数表单：使用 antd Form 实现，
+ * 2 列纵向布局（label 在上、输入框在下，相邻两列各占一半）。
+ * label 黑色加粗；输入框圆角、略高、内部浅灰背景。
+ */
+export function DrawerSchemaForm({
+  schema,
+  values,
+  errors,
+  onChange,
+  columns = 2,
+  prefix,
+}: {
+  schema: ConfigSchema | null;
+  values: Record<string, unknown>;
+  errors?: FieldErrors;
+  onChange: (path: string, value: unknown) => void;
+  columns?: 1 | 2;
+  /** 字段错误 key 前缀，如 "model." / "chip." */
+  prefix?: string;
+}) {
+  const paths = schema?.["x-main-paths"] ?? [];
+  const colSpan = columns === 2 ? 12 : 24;
+  const errPrefix = prefix ?? "";
+  return (
+    <Form layout="vertical" component="div" className={sf.drawerForm}>
+      <Row gutter={[16, 8]}>
+        {paths.map((p) => {
+          const prop = resolveProp(schema, p);
+          if (!prop) return null;
+          const isNumber = prop.type === "number" || prop.type === "integer";
+          const value = getByPath(values, p);
+          const error = errors?.[`${errPrefix}${p}`];
+          return (
+            <Col key={p} span={colSpan}>
+              <Form.Item
+                label={prop.title ?? p}
+                required={isRequiredBySchema(schema!, p)}
+                validateStatus={error ? "error" : undefined}
+                help={error ?? undefined}
+                className={sf.drawerFormItem}
+                colon={false}
+              >
+                {Array.isArray(prop.enum) && prop.enum.length > 0 ? (
+                  <Select
+                    value={value === undefined || value === null ? undefined : String(value)}
+                    options={prop.enum.map((v, i) => ({
+                      value: v,
+                      label: prop["x-enum-label"]?.[i] ?? v,
+                    }))}
+                    onChange={(v) => onChange(p, v)}
+                    className={sf.drawerControl}
+                    style={{ width: "100%" }}
+                  />
+                ) : isNumber ? (
+                  <InputNumber
+                    value={value === undefined || value === null ? undefined : (value as number)}
+                    min={prop.minimum}
+                    max={prop.maximum}
+                    step={prop.type === "integer" ? 1 : 0.01}
+                    precision={prop.type === "integer" ? 0 : undefined}
+                    suffix={prop.unit}
+                    controls={false}
+                    className={sf.drawerControl}
+                    style={{ width: "100%" }}
+                    onChange={(v) => onChange(p, v)}
+                  />
+                ) : (
+                  <Input
+                    value={value === undefined || value === null ? "" : String(value)}
+                    onChange={(e) => onChange(p, e.target.value)}
+                    className={sf.drawerControl}
+                  />
+                )}
+              </Form.Item>
+            </Col>
+          );
+        })}
+      </Row>
+    </Form>
   );
 }
 

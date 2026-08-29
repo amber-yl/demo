@@ -439,6 +439,7 @@ DASHBOARD_QUICK_ENTRIES: list[dict[str, Any]] = [
     {"title": "NGC 推理仿真", "desc": "大模型训练负载，分析 MFU 与通信瓶颈。", "icon": "Bot", "bg": "rgba(52, 211, 153, 0.12)", "fg": "var(--success)", "accent": "linear-gradient(90deg, #34d399, #10b981)", "goto": "ngc-inference-sim"},
     {"title": "NGC 对比分析", "desc": "HPC、通用批处理与科学计算负载。", "icon": "Code2", "bg": "rgba(251, 191, 36, 0.12)", "fg": "var(--accent-400)", "accent": "linear-gradient(90deg, #fbbf24, #f59e0b)", "goto": "ngc-comparative-analyze"},
     {"title": "NGC 计算-内存分析", "desc": "芯片、服务器、网络与集群拓扑的系统级评估。", "icon": "Network", "bg": "rgba(167, 139, 250, 0.12)", "fg": "var(--purple)", "accent": "linear-gradient(90deg, #a78bfa, #8b5cf6)", "goto": "ngc-compute-memory-analyze"},
+    {"title": "内存池模拟仿真", "desc": "模拟内存池行为，分析内存占用与碎片。", "icon": "Memory", "bg": "rgba(167, 139, 250, 0.12)", "fg": "var(--purple)", "accent": "linear-gradient(90deg, #a78bfa, #8b5cf6)", "goto": "memory-pool-sim"},
 ]
 
 AGENT_SUGGESTIONS: list[str] = [
