@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ChevronRight, Sun, Moon, LogOut } from "lucide-react";
 import type { User } from "@/types";
 import { ROLE_LABEL } from "@/utils";
-import { ROUTE_GROUPS, STANDALONE_ROUTES, isPathInGroup } from "@/routes";
+import { STANDALONE_ROUTES } from "@/routes";
 import styles from "./AppTopBar.module.less";
 
 type Props = {
@@ -32,22 +32,6 @@ function buildCrumbs(pathname: string): Crumb[] {
 
   if (pathname === "/dashboard" || pathname === "/") {
     crumbs.push({ label: "总览", active: true });
-    return crumbs;
-  }
-
-  // 从 ROUTE_GROUPS 匹配分组路由
-  for (const group of ROUTE_GROUPS) {
-    if (!isPathInGroup(pathname, group.key)) continue;
-
-    crumbs.push({ label: group.title });
-
-    const child = group.children.find(
-      (c) => pathname === c.path || pathname.startsWith(c.path + "/"),
-    );
-
-    if (child) {
-      crumbs.push({ label: child.title, active: true });
-    }
     return crumbs;
   }
 

@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* ============ rem 自适应（替代原 JS 方案） ============ */
+/* 1vw = 当前视口宽度的 1%，天然跟随屏幕宽度，无硬编码、无 resize 监听。
+   基准：1920px 视口时根字号 = 0.8333vw * 19.2 ≈ 16px；
+   下限 9.6px（0.6x，约 ≤1152px）、上限 22.4px（1.4x，约 ≥2688px）。 */
+html {
+  font-size: clamp(9.6px, 0.8333vw, 22.4px);
+}
+
 /* ============ Design Tokens (SimForge themes) ============ */
 /* 暗夜模式（默认） */
 :root,

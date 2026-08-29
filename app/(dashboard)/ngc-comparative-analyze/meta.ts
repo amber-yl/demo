@@ -9,7 +9,6 @@ const meta: RouteMeta = {
   path: "/ngc-comparative-analyze",
   title: "NGC 对比分析",
   icon: BarChart3,
-  subtitle: "NGC Comparative Analyze",
   order: 3,
 };
 

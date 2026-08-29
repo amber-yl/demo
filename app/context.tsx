@@ -147,30 +147,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  // ---------- rem 自适应 ----------
-  useEffect(() => {
-    const DESIGN_WIDTH = 1920;
-    const BASE_FONT = 16;
-    const MIN_RATIO = 0.6;
-    const MAX_RATIO = 1.4;
-    let raf = 0;
-    const apply = () => {
-      const w = window.innerWidth;
-      const ratio = Math.max(MIN_RATIO, Math.min(MAX_RATIO, w / DESIGN_WIDTH));
-      document.documentElement.style.fontSize = `${BASE_FONT * ratio}px`;
-    };
-    apply();
-    const onResize = () => {
-      if (raf) cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(apply);
-    };
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
-
   // ---------- patch 事件监听 ----------
   useEffect(() => {
     const onPatch = () => setPatchTick((c) => c + 1);

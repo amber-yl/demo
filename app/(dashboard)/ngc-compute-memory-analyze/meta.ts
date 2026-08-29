@@ -9,7 +9,6 @@ const meta: RouteMeta = {
   path: "/ngc-compute-memory-analyze",
   title: "NGC 计算-内存分析",
   icon: BarChart3,
-  subtitle: "NGC Compute Memory Analyze",
   order: 4,
 };
 
