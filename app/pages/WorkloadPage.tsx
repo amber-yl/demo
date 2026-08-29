@@ -43,6 +43,7 @@ import type {
   OptionsData,
   ConfigSchema,
   SchemasData,
+  ScenarioSchemas,
 } from "@/utils/api";
 import styles from "./WorkloadPage.module.less";
 
@@ -277,8 +278,8 @@ type Props = {
   agentApplyPatch: (patch: Record<string, unknown>) => void;
   getCachedResult: (kind: WorkloadKind, scene: SceneKind) => SimResult | null;
   setCachedResult: (kind: WorkloadKind, scene: SceneKind, result: SimResult) => void;
-  /** 芯片抽屉表单 schema 覆盖：传入则抽屉字段改用此 schema（卡片选择仍用后端 schemas.chip） */
-  chipDrawerSchema?: ConfigSchema | null;
+  /** 场景定制 Schema：覆盖模型/芯片抽屉字段与验证规则（来自各路由 schemas/index.ts），缺省回退后端 schemas */
+  scenarioSchemas?: ScenarioSchemas | null;
   key?: string | number;
 };
 
@@ -292,7 +293,7 @@ export default function WorkloadPage({
   agentApplyPatch,
   getCachedResult,
   setCachedResult,
-  chipDrawerSchema,
+  scenarioSchemas,
 }: Props) {
   const [options, setOptions] = useState<OptionsData | null>(null);
   const [workloadDefaults, setWorkloadDefaults] = useState<Record<WorkloadKind, WorkloadConfig> | null>(null);
@@ -309,6 +310,10 @@ export default function WorkloadPage({
 
   // 自研表单校验错误（key: "config.<field>" / "model.<path>" / "chip.<path>"）
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
+  // 场景定制抽屉 Schema（来自路由 schemas/index.ts；未覆盖的抽屉回退后端 schemas）
+  const modelDrawerSchema = scenarioSchemas?.modelDrawer ?? null;
+  const chipDrawerSchema = scenarioSchemas?.chipDrawer ?? null;
 
   // 模型/芯片参数抽屉（选中对应卡片后展示）
   const [modelDrawerOpen, setModelDrawerOpen] = useState(false);
@@ -337,11 +342,14 @@ export default function WorkloadPage({
         const wd = defs.workload_defaults as Record<WorkloadKind, WorkloadConfig>;
         setWorkloadDefaults(wd);
         setSchemas(sch);
-        setModelValues(initValuesFromSchema(sch.model));
-        // chipValues：卡片选择字段（来自后端 sch.chip）+ 抽屉覆盖字段（chipDrawerSchema，如内存池页 demo.json）
+        setModelValues({
+          ...initValuesFromSchema(sch.model),
+          ...initFlatDefaults(modelDrawerSchema),
+        });
+        // chipValues：卡片选择字段（来自后端 sch.chip）+ 场景抽屉覆盖字段默认值
         setChipValues({
           ...initValuesFromSchema(sch.chip),
-          ...initFlatDefaults(chipDrawerSchema ?? null),
+          ...initFlatDefaults(chipDrawerSchema),
         });
       } catch {
         /* keep null state */
@@ -385,14 +393,17 @@ export default function WorkloadPage({
   const runSimulation = useCallback(async () => {
     if (runState === "running" || !config) return;
     // 运行前按 JSON Schema 规则 + 字段定义校验全部参数
+    // 抽屉参数按「场景生效 Schema」校验：场景覆盖优先，未覆盖回退后端 schemas
     const errs: FieldErrors = {};
-    if (schemas.model) {
-      for (const [k, v] of Object.entries(validateSchemaFields(schemas.model, modelValues))) {
+    const effectiveModelSchema = modelDrawerSchema ?? schemas.model;
+    if (effectiveModelSchema) {
+      for (const [k, v] of Object.entries(validateSchemaFields(effectiveModelSchema, modelValues))) {
         errs[`model.${k}`] = v;
       }
     }
-    if (schemas.chip) {
-      for (const [k, v] of Object.entries(validateSchemaFields(schemas.chip, chipValues))) {
+    const effectiveChipSchema = chipDrawerSchema ?? schemas.chip;
+    if (effectiveChipSchema) {
+      for (const [k, v] of Object.entries(validateSchemaFields(effectiveChipSchema, chipValues))) {
         errs[`chip.${k}`] = v;
       }
     }
@@ -464,7 +475,7 @@ export default function WorkloadPage({
     } finally {
       setProgress(100);
     }
-  }, [kind, config, token, templates, setCachedResult, runState, modelValues, chipValues, schemas]);
+  }, [kind, config, token, templates, setCachedResult, runState, modelValues, chipValues, schemas, modelDrawerSchema, chipDrawerSchema]);
 
   useEffect(() => {
     simulationRef.current = runSimulation;
@@ -772,9 +783,12 @@ export default function WorkloadPage({
     }
   }, [kind, modelValues, schemas.model]);
 
-  /** 重置模型参数为 schema 初始值（首个 variant），并联动主表单 precision / maxModelLen */
+  /** 重置模型参数为 schema 初始值（首个 variant + 场景抽屉覆盖字段默认值），并联动主表单 precision / maxModelLen */
   const handleResetModelValues = useCallback(() => {
-    const init = initValuesFromSchema(schemas.model);
+    const init = {
+      ...initValuesFromSchema(schemas.model),
+      ...initFlatDefaults(modelDrawerSchema),
+    };
     setModelValues(init);
     clearFieldErrorPrefix("model.");
     const typeKey = typeKeyOf(schemas.model);
@@ -787,7 +801,7 @@ export default function WorkloadPage({
       return next;
     });
     message.info("已重置模型参数为默认值");
-  }, [schemas.model, clearFieldErrorPrefix]);
+  }, [schemas.model, modelDrawerSchema, clearFieldErrorPrefix]);
 
   /** 保存芯片参数为本地自定义模板（localStorage） */
   const handleSaveChipTemplate = useCallback(() => {
@@ -807,10 +821,10 @@ export default function WorkloadPage({
 
   /** 重置芯片参数为 schema 初始值（首个 variant），并联动主表单 gpuType */
   const handleResetChipValues = useCallback(() => {
-    // 卡片选择字段重置为后端 sch.chip 首个 variant；抽屉覆盖字段重置为 chipDrawerSchema 默认值
+    // 卡片选择字段重置为后端 sch.chip 首个 variant；场景抽屉覆盖字段重置为覆盖 Schema 默认值
     const init = {
       ...initValuesFromSchema(schemas.chip),
-      ...initFlatDefaults(chipDrawerSchema ?? null),
+      ...initFlatDefaults(chipDrawerSchema),
     };
     setChipValues(init);
     clearFieldErrorPrefix("chip.");
@@ -994,7 +1008,7 @@ export default function WorkloadPage({
         </div>
       </div>
 
-      {/* 模型参数抽屉：选中模型卡片后从右侧展示对应参数表单 */}
+      {/* 模型参数抽屉：选中模型卡片后从右侧展示对应参数表单（场景覆盖优先） */}
       <ParamConfigDrawer
         open={modelDrawerOpen}
         onClose={() => setModelDrawerOpen(false)}
@@ -1003,7 +1017,7 @@ export default function WorkloadPage({
             ? `${modelValues[modelTypeKey]} 参数配置`
             : "模型参数配置"
         }
-        schema={schemas.model}
+        schema={modelDrawerSchema ?? schemas.model}
         values={modelValues}
         errors={fieldErrors}
         onChange={setModelValue}

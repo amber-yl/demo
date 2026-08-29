@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "@/context";
 import type { WorkloadKind } from "@/types";
-import type { ConfigSchema } from "@/utils/api";
+import type { ScenarioSchemas } from "@/utils/api";
 import OriginalWorkloadPage from "@/pages/WorkloadPage";
 
 /**
@@ -13,11 +13,11 @@ import OriginalWorkloadPage from "@/pages/WorkloadPage";
  */
 export default function WorkloadPageView({
   kind,
-  chipDrawerSchema,
+  scenarioSchemas,
 }: {
   kind: WorkloadKind;
-  /** 芯片抽屉表单 schema 覆盖（仅需要定制抽屉字段的路由传入，如内存池页） */
-  chipDrawerSchema?: ConfigSchema | null;
+  /** 场景定制 Schema（模型/芯片抽屉覆盖），来自各路由的 schemas/index.ts */
+  scenarioSchemas?: ScenarioSchemas | null;
 }) {
   const app = useApp();
 
@@ -38,7 +38,7 @@ export default function WorkloadPageView({
       agentApplyPatch={app.applyPatchToWorkload}
       getCachedResult={app.getCachedResult}
       setCachedResult={app.setCachedResult}
-      chipDrawerSchema={chipDrawerSchema}
+      scenarioSchemas={scenarioSchemas}
     />
   );
 }

@@ -112,6 +112,17 @@ export type SchemasData = {
   chip: ConfigSchema | null;
 };
 
+/**
+ * 场景定制 Schema：不同仿真页面按需覆盖抽屉参数表单（字段与验证规则随 Schema 走）。
+ * 各场景在自己的路由文件夹 schemas/index.ts 中定义，缺省字段回退后端 /api/schemas。
+ */
+export type ScenarioSchemas = {
+  /** 模型参数抽屉 schema 覆盖 */
+  modelDrawer?: ConfigSchema | null;
+  /** 芯片参数抽屉 schema 覆盖 */
+  chipDrawer?: ConfigSchema | null;
+};
+
 export type DashboardTask = {
   id: string;
   name: string;
